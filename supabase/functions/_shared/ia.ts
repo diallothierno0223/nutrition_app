@@ -20,15 +20,14 @@ export type DemandeAnalyseRepas = {
   objectifsRestants: ObjectifsJournaliers | null;
 };
 
-/** « Calories restantes : 1985 kcal », une ligne par nutriment qui a un Objectif. */
+/** « Calories : reste 1985 kcal », une ligne par nutriment qui a un Objectif. */
 export function decrireObjectifsRestants(restants: ObjectifsJournaliers | null): string {
   if (!restants) return "Aucun Objectif journalier défini.";
   return NUTRIMENTS.flatMap((n) => {
     const reste = restants[n];
     if (reste === null) return [];
-    // Seul « Calories » est féminin pluriel parmi les libellés.
-    const accord = n === "calories" ? "es" : "";
-    return [`${libelleDuNutriment(n)} restant${accord} : ${reste} ${uniteDuNutriment(n)}`];
+    // Tournure sans accord : « Sucres : reste 45.9 g ».
+    return [`${libelleDuNutriment(n)} : reste ${reste} ${uniteDuNutriment(n)}`];
   }).join("\n");
 }
 
@@ -53,9 +52,9 @@ const iaFactice: IA = {
     return lireAnalyseRepas({
       constituants: [
         { nom: "Riz blanc cuit", quantite: 150, unite: "g", equivalent_cuisine: "1 bol",
-          calories: 195, proteines: 4, glucides: 42, lipides: 0.5, ags: 0.1, fibres: 0.6, sel: 0 },
+          calories: 195, proteines: 4, glucides: 42, sucres: 0.1, lipides: 0.5, ags: 0.1, fibres: 0.6, sel: 0 },
         { nom: "Sauce arachide", quantite: 200, unite: "ml", equivalent_cuisine: "1 louche",
-          calories: 320, proteines: 12, glucides: 10, lipides: 26, ags: 6.5, fibres: 3, sel: 1.8 },
+          calories: 320, proteines: 12, glucides: 10, sucres: 4, lipides: 26, ags: 6.5, fibres: 3, sel: 1.8 },
       ],
       commentaire: `Analyse factice de « ${description} ».\nPoint fort : des glucides pour l'énergie.\nPoint faible : sauce riche en AGS.\nAmélioration : moins de pâte d'arachide.${restants}`,
     });
@@ -86,7 +85,7 @@ const SCHEMA_ANALYSE = {
 const CONSIGNES_ANALYSE = `Tu es nutritionniste. Tu aides une personne atteinte d'hypercholestérolémie génétique, qui mange souvent de la cuisine africaine (mafé, fonio, attiéké, poisson braisé…), à suivre son alimentation.
 À partir de la description d'un repas, décompose-le en Constituants (un aliment par Constituant) et estime pour chacun :
 - la quantité en grammes (g) ou millilitres (ml), et son équivalent en mesure de cuisine (« 1 louche », « 2 c. à soupe ») ;
-- calories (kcal), protéines, glucides, lipides, acides gras saturés (ags), fibres et sel, tous en grammes, pour la quantité estimée.
+- calories (kcal), protéines, glucides, dont sucres (sucres), lipides, acides gras saturés (ags), fibres et sel, tous en grammes, pour la quantité estimée.
 Compte les huiles et matières grasses de cuisson comme des Constituants à part quand elles sont probables.
 Rédige un Commentaire du repas en français, 10 lignes au maximum : un point fort, un point faible, une amélioration possible, en pensant d'abord aux acides gras saturés et aux fibres.
 Tiens compte de ce qui restait dans les Objectifs du jour avant ce repas (une valeur négative signifie que l'Objectif était déjà dépassé), et conseille la suite de la journée.

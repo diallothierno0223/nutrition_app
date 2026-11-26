@@ -1,6 +1,6 @@
 // Gestes communs aux tests backend : créer un Repas, l'analyser (IA factice), lire ses Constituants.
 // Avec l'IA factice, chaque analyse donne un riz blanc (195 kcal, AGS 0,1 g) et une sauce arachide (320 kcal, AGS 6,5 g),
-// soit 515 kcal et 6,6 g d'AGS par Repas.
+// soit 515 kcal, 6,6 g d'AGS et 4,1 g de sucres (0,1 + 4) par Repas.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { statutLocal, type UtilisateurDeTest } from "./supabase-local.ts";
 

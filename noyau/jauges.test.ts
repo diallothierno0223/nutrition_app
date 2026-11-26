@@ -52,9 +52,9 @@ describe("jauge en général", () => {
 describe("Objectifs restants", () => {
   it("retire du jour ce qui est déjà consommé, nutriment par nutriment", () => {
     const restants = objectifsRestants(
-      { calories: 2500, proteines: 90, glucides: null, lipides: 85, ags: 20, fibres: 30, sel: 5 },
-      { calories: 1200, proteines: 40, glucides: 150, lipides: 50, ags: 22, fibres: 10.5, sel: 2 },
+      { calories: 2500, proteines: 90, glucides: null, sucres: 40, lipides: 85, ags: 20, fibres: 30, sel: 5 },
+      { calories: 1200, proteines: 40, glucides: 150, sucres: 45, lipides: 50, ags: 22, fibres: 10.5, sel: 2 },
     );
-    expect(restants).toEqual({ calories: 1300, proteines: 50, glucides: null, lipides: 35, ags: -2, fibres: 19.5, sel: 3 });
+    expect(restants).toEqual({ calories: 1300, proteines: 50, glucides: null, sucres: -5, lipides: 35, ags: -2, fibres: 19.5, sel: 3 });
   });
 });

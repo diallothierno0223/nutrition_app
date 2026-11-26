@@ -11,7 +11,7 @@ export function formaterValeur(nutriment: Nutriment, valeur: number): string {
   return `${arrondie} ${unite}`;
 }
 
-/** Les 7 nutriments d'un Repas ou d'une Journée, en grille compacte. */
+/** Les nutriments d'un Repas ou d'une Journée, en grille compacte. */
 export function ValeursNutritionnelles({ valeurs }: { valeurs: ValeursNutritionnelles }) {
   return (
     <View style={styles.grille}>

@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { creerUtilisateurConnecte, type UtilisateurDeTest } from "./supabase-local.ts";
 import { analyser, creerRepas, creerRepasAnalyse } from "./outils.ts";
 
-const OBJECTIFS = { calories: 2500, proteines: 90, glucides: 330, lipides: 85, ags: 20, fibres: 30, sel: 5 };
+const OBJECTIFS = { calories: 2500, proteines: 90, glucides: 330, sucres: 50, lipides: 85, ags: 20, fibres: 30, sel: 5 };
 
 describe("Objectifs journaliers", () => {
   let moi: UtilisateurDeTest;
@@ -55,10 +55,10 @@ describe("totaux du jour", () => {
   it("additionnent les Repas analysés de la Journée, sans les Repas en attente", async () => {
     const { data } = await moi.client
       .from("totaux_du_jour")
-      .select("calories, ags")
+      .select("calories, ags, sucres")
       .eq("journee", "2026-11-26")
       .single();
-    expect(data).toEqual({ calories: 1030, ags: 13.2 });
+    expect(data).toEqual({ calories: 1030, ags: 13.2, sucres: 8.2 });
   });
 
   it("restent invisibles pour un autre utilisateur", async () => {
@@ -82,6 +82,7 @@ describe("Commentaire du repas et Objectifs restants", () => {
     await analyser(moi, repasId); // une relance ne doit pas se compter elle-même
 
     const { data } = await moi.client.from("repas").select("commentaire").eq("id", repasId).single();
-    expect(data?.commentaire).toContain("Calories restantes : 1985 kcal");
+    expect(data?.commentaire).toContain("Calories : reste 1985 kcal");
+    expect(data?.commentaire).toContain("Sucres : reste 45.9 g");
   });
 });

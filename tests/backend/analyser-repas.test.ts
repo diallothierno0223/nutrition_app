@@ -8,7 +8,7 @@ import { analyser, creerRepas } from "./outils.ts";
 async function constituantsDe(client: SupabaseClient, repasId: string) {
   const { data, error } = await client
     .from("constituants")
-    .select("nom, quantite, unite, equivalent_cuisine, calories, ags")
+    .select("nom, quantite, unite, equivalent_cuisine, calories, sucres, ags")
     .eq("repas_id", repasId)
     .order("position");
   if (error) throw error;
@@ -40,8 +40,8 @@ describe("analyser-repas", () => {
     expect(repas?.commentaire).toContain("Mafé au poulet avec du riz");
 
     expect(await constituantsDe(moi.client, repasId)).toEqual([
-      { nom: "Riz blanc cuit", quantite: 150, unite: "g", equivalent_cuisine: "1 bol", calories: 195, ags: 0.1 },
-      { nom: "Sauce arachide", quantite: 200, unite: "ml", equivalent_cuisine: "1 louche", calories: 320, ags: 6.5 },
+      { nom: "Riz blanc cuit", quantite: 150, unite: "g", equivalent_cuisine: "1 bol", calories: 195, sucres: 0.1, ags: 0.1 },
+      { nom: "Sauce arachide", quantite: 200, unite: "ml", equivalent_cuisine: "1 louche", calories: 320, sucres: 4, ags: 6.5 },
     ]);
   });
 

@@ -3,7 +3,7 @@ import { NUTRIMENTS, libelleDuNutriment, sensDuNutriment, uniteDuNutriment } fro
 
 describe("unités des nutriments", () => {
   it("compte les calories en kcal et le reste en grammes", () => {
-    expect(NUTRIMENTS.map(uniteDuNutriment)).toEqual(["kcal", "g", "g", "g", "g", "g", "g"]);
+    expect(NUTRIMENTS.map(uniteDuNutriment)).toEqual(["kcal", "g", "g", "g", "g", "g", "g", "g"]);
   });
 });
 
@@ -13,6 +13,7 @@ describe("libellés des nutriments", () => {
       "Calories",
       "Protéines",
       "Glucides",
+      "Sucres",
       "Lipides",
       "AGS",
       "Fibres",
@@ -22,11 +23,12 @@ describe("libellés des nutriments", () => {
 });
 
 describe("sens des nutriments", () => {
-  it("suit les 7 nutriments de la V1", () => {
+  it("suit les 8 nutriments de la V1", () => {
     expect(NUTRIMENTS).toEqual([
       "calories",
       "proteines",
       "glucides",
+      "sucres",
       "lipides",
       "ags",
       "fibres",
@@ -34,8 +36,9 @@ describe("sens des nutriments", () => {
     ]);
   });
 
-  it("traite les AGS et le Sel comme des Plafonds", () => {
+  it("traite les AGS, les Sucres et le Sel comme des Plafonds", () => {
     expect(sensDuNutriment("ags")).toBe("plafond");
+    expect(sensDuNutriment("sucres")).toBe("plafond");
     expect(sensDuNutriment("sel")).toBe("plafond");
   });
 

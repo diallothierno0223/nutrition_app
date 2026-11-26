@@ -19,7 +19,7 @@ const MENTIONS: Partial<Record<EtatDeJauge, string>> = {
   en_dessous: "en dessous",
 };
 
-/** Les 7 jauges du jour : consommation face à l'Objectif journalier, colorées selon leur état. */
+/** Les jauges du jour : consommation face à l'Objectif journalier, colorées selon leur état. */
 export function Jauges({ totaux, objectifs }: { totaux: ValeursNutritionnelles; objectifs: ObjectifsJournaliers }) {
   const theme = useTheme();
   return (

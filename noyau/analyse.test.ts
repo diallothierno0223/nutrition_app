@@ -9,6 +9,7 @@ const constituantValide = {
   calories: 195,
   proteines: 4,
   glucides: 42,
+  sucres: 0.1,
   lipides: 0.5,
   ags: 0.1,
   fibres: 0.6,

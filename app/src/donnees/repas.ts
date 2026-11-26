@@ -1,5 +1,5 @@
 // Accès aux Repas depuis l'app. L'analyse est faite et enregistrée côté serveur (ADR 0003).
-import { journeeDe, typeDeRepas, type Constituant, type TypeDeRepas } from "@noyau";
+import { NUTRIMENTS, journeeDe, typeDeRepas, type Constituant, type TypeDeRepas } from "@noyau";
 
 import { supabase } from "@/lib/supabase";
 
@@ -49,8 +49,7 @@ export async function analyserRepas(repasId: string): Promise<{ reussie: boolean
 }
 
 const COLONNES_REPAS = "id, mange_le, journee, type_repas, description, statut, commentaire, erreur_analyse";
-const COLONNES_CONSTITUANT =
-  "nom, quantite, unite, equivalent_cuisine, calories, proteines, glucides, lipides, ags, fibres, sel";
+const COLONNES_CONSTITUANT = ["nom", "quantite", "unite", "equivalent_cuisine", ...NUTRIMENTS].join(", ");
 
 export async function chargerRepas(id: string): Promise<RepasDetaille | null> {
   const { data, error } = await supabase
@@ -60,7 +59,7 @@ export async function chargerRepas(id: string): Promise<RepasDetaille | null> {
     .order("position", { referencedTable: "constituants" })
     .maybeSingle();
   if (error) throw error;
-  return data as RepasDetaille | null;
+  return data as unknown as RepasDetaille | null;
 }
 
 /** Les Repas d'une Journée, avec leurs Constituants, du plus ancien au plus récent. */
@@ -71,5 +70,5 @@ export async function repasDeLaJournee(journee: string): Promise<RepasDetaille[]
     .eq("journee", journee)
     .order("mange_le");
   if (error) throw error;
-  return data as RepasDetaille[];
+  return data as unknown as RepasDetaille[];
 }

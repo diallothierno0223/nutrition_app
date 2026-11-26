@@ -1,6 +1,6 @@
 import { NUTRIMENTS, type Nutriment } from "./nutriments.ts";
 
-/** Les valeurs des 7 nutriments (calories en kcal, le reste en grammes). */
+/** Les valeurs des nutriments suivis (calories en kcal, le reste en grammes). */
 export type ValeursNutritionnelles = Record<Nutriment, number>;
 
 export type Unite = "g" | "ml";

@@ -1,8 +1,9 @@
-/** Les 7 nutriments suivis en V1 (voir GLOSSARY.md). */
+/** Les 8 nutriments suivis en V1 (voir GLOSSARY.md). */
 export const NUTRIMENTS = [
   "calories",
   "proteines",
   "glucides",
+  "sucres",
   "lipides",
   "ags",
   "fibres",
@@ -18,6 +19,7 @@ const SENS: Record<Nutriment, Sens> = {
   calories: "plage",
   proteines: "cible",
   glucides: "plage",
+  sucres: "plafond",
   lipides: "plage",
   ags: "plafond",
   fibres: "cible",
@@ -32,6 +34,7 @@ const LIBELLES: Record<Nutriment, string> = {
   calories: "Calories",
   proteines: "Protéines",
   glucides: "Glucides",
+  sucres: "Sucres",
   lipides: "Lipides",
   ags: "AGS",
   fibres: "Fibres",
