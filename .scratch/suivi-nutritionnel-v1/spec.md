@@ -63,14 +63,14 @@ Une application Android personnelle (un seul utilisateur) dans laquelle je décr
 33. En tant qu'utilisateur, je veux définir un Objectif de poids (texte libre, variation chiffrée et échéance, par exemple +2 kg en 6 mois), afin que mes calories soient ajustées en conséquence.
 34. En tant qu'utilisateur, je veux enregistrer des Pesées datées, afin de suivre l'évolution de mon poids.
 35. En tant qu'utilisateur, je veux que le poids du Profil soit celui de la dernière Pesée, afin de ne pas le saisir deux fois.
-36. En tant qu'utilisateur, je veux que mes Objectifs journaliers soient calculés par formule (Mifflin-St Jeor × niveau d'activité + ajustement de l'Objectif de poids, macros selon les repères par défaut), afin d'avoir une base reproductible et explicable.
-37. En tant qu'utilisateur, je veux pouvoir demander l'avis de l'IA sur ces Objectifs, afin qu'ils tiennent compte de mon objectif en texte libre et des Règles du médecin.
+36. En tant qu'utilisateur, je veux que l'IA estime mes Objectifs journaliers à partir de mon Profil, de mes Objectifs personnels (texte libre : « réduire le sucre », « prendre 2 kg en 6 mois ») et des Règles du médecin, chacun avec une courte justification, afin de ne pas avoir à les calculer moi-même (ADR 0004).
+37. En tant qu'utilisateur, je veux que la formule (Mifflin-St Jeor × niveau d'activité) serve de garde-fou à l'estimation, afin d'éviter des calories fantaisistes.
 38. En tant qu'utilisateur, je veux valider explicitement tout nouvel Objectif proposé avant qu'il s'applique, afin que mes jauges ne changent jamais en silence.
 39. En tant qu'utilisateur, je veux qu'un recalcul me soit proposé quand mon Profil ou mon Objectif de poids change, afin de garder des Objectifs à jour sans les subir.
 40. En tant qu'utilisateur, je veux modifier à la main chaque Objectif journalier, afin d'appliquer un chiffre donné par mon médecin.
 41. En tant qu'utilisateur, je veux que l'Objectif hebdomadaire soit toujours 7 fois l'Objectif journalier, afin de n'avoir qu'une valeur à maintenir.
 42. En tant qu'utilisateur, je veux un objectif d'Hydratation en litres, afin de suivre ma consommation d'eau.
-43. En tant qu'utilisateur, je veux suivre 7 nutriments (Calories, Protéines, Glucides, Lipides, AGS, Fibres, Sel), afin de couvrir l'essentiel sans surcharge.
+43. En tant qu'utilisateur, je veux suivre 8 nutriments (Calories, Protéines, Glucides, Sucres, Lipides, AGS, Fibres, Sel), afin de couvrir l'essentiel sans surcharge.
 
 ### Règles du médecin
 
@@ -82,7 +82,7 @@ Une application Android personnelle (un seul utilisateur) dans laquelle je décr
 ### Dashboard
 
 48. En tant qu'utilisateur, je veux voir les jauges du jour pour chaque nutriment et l'Hydratation, afin de savoir où j'en suis.
-49. En tant qu'utilisateur, je veux que les jauges des Plafonds (AGS, Sel) passent à l'orange à 80 % et au rouge au-delà de 100 %, afin d'être alerté avant de dépasser.
+49. En tant qu'utilisateur, je veux que les jauges des Plafonds (AGS, Sucres, Sel) passent à l'orange à 80 % et au rouge au-delà de 100 %, afin d'être alerté avant de dépasser.
 50. En tant qu'utilisateur, je veux que les jauges des Plages (Calories, Glucides, Lipides) signalent une sortie de ±10 %, en dessous comme au-dessus, afin de soutenir ma prise de poids.
 51. En tant qu'utilisateur, je veux que les Cibles (Protéines, Fibres, Hydratation) ne déclenchent pas d'alerte en journée, afin de ne pas être harcelé le matin.
 52. En tant qu'utilisateur, je veux un récapitulatif de la Semaine (lundi–dimanche) face à l'Objectif hebdomadaire, avec un mini-graphique par jour, afin de voir ma tendance.
@@ -175,7 +175,7 @@ Une application Android personnelle (un seul utilisateur) dans laquelle je décr
 2. **Port IA** : une seule interface vers Gemini, avec trois opérations : analyser un Repas, proposer des Objectifs, générer un Rendez-vous du samedi. Chaque opération utilise une sortie JSON à schéma imposé et reçoit toujours les Règles du médecin actives, avec la consigne qu'elles priment sur les repères par défaut. Une implémentation réelle (Gemini) et une implémentation factice pour les tests.
 3. **Edge Functions** :
    - `analyser-repas` : reçoit l'identifiant d'un Repas (texte, note, photo en Storage), construit le contexte (Règles actives, Objectifs restants du jour), appelle le Port IA et **écrit** les Constituants, les totaux et le Commentaire du repas dans le Repas (ADR 0003). Sert aussi à relancer une analyse avec une précision.
-   - `proposer-objectifs` : renvoie une proposition d'Objectifs ; **n'écrit rien**, l'app applique seulement après validation explicite.
+   - `estimer-objectifs` : l'IA estime les Objectifs journaliers (Profil, Objectifs personnels, Règles du médecin, formule en garde-fou) ; **n'écrit rien**, l'app pré-remplit la proposition et n'applique qu'après « Appliquer » (ADR 0004).
    - `generer-rendez-vous` : idempotente par semaine pour le traitement automatique ; peut être forcée pour une nouvelle génération. Écrit en une transaction le Bilan de la semaine, les Recettes, les petits-déjeuners, les Plats de la semaine et la Liste de courses.
 4. **Base Postgres** : une table par concept du glossaire (Profil, Pesée, Objectif journalier, Règle du médecin, Repas, Constituant, Plat et ses Constituants, Hydratation, Rendez-vous du samedi, Recette et ses ingrédients, article de Liste de courses, Réglages). Des **vues SQL** calculent les totaux du jour, de la Semaine et la moyenne globale. RLS sur toutes les tables, liée à l'utilisateur authentifié.
 5. **Planification** : un job `pg_cron` s'exécute chaque heure du vendredi soir au samedi midi (UTC) et appelle `generer-rendez-vous`. La fonction décide elle-même via le noyau métier s'il faut générer. Cela couvre les nouveaux essais et l'heure d'été.
@@ -216,7 +216,7 @@ Une application Android personnelle (un seul utilisateur) dans laquelle je décr
 - Modification hors ligne des Objectifs, du Profil et des Règles du médecin.
 - Tests automatisés de l'interface.
 - Avertissement médical dans l'app.
-- Suivi du cholestérol alimentaire, des acides gras trans et des sucres en jauges (l'IA peut les mentionner dans les Commentaires).
+- Suivi du cholestérol alimentaire et des acides gras trans en jauges (l'IA peut les mentionner dans les Commentaires). Les sucres, d'abord exclus, ont été ajoutés (8e nutriment, Plafond).
 
 ## Further Notes
 

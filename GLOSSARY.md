@@ -57,15 +57,23 @@ _À éviter_ : 7 derniers jours (c'est la Période d'analyse)
 ### Objectifs
 
 **Profil** :
-Les données corporelles et personnelles de l'utilisateur (poids, taille, etc.) qui servent à calculer les Objectifs.
+Les données corporelles et personnelles de l'utilisateur (poids, taille, âge, sexe, niveau d'activité) qui servent à estimer les Objectifs journaliers.
 _À éviter_ : Compte, fiche patient
+
+**Objectifs personnels** :
+Ce que l'utilisateur veut obtenir, en texte libre (« réduire le sucre », « prendre 2 kg en 6 mois »). L'IA s'en sert pour estimer les Objectifs journaliers.
+_À éviter_ : Buts, souhaits, Objectifs (seul, ambigu avec Objectifs journaliers)
+
+**Estimation des Objectifs** :
+La proposition d'Objectifs journaliers faite par l'IA à partir du Profil, des Objectifs personnels et des Règles du médecin. Elle ne s'applique qu'après validation de l'utilisateur.
+_À éviter_ : Calcul des objectifs, recommandation
 
 **Pesée** :
 Une mesure datée du poids de l'utilisateur. Le poids du Profil est celui de la dernière Pesée.
 _À éviter_ : Mesure, relevé
 
 **Objectif de poids** :
-La variation de poids visée et son échéance (par exemple +2 kg en 6 mois), qui ajuste l'Objectif journalier de calories.
+La variation de poids visée et son échéance (par exemple +2 kg en 6 mois), chiffrée pour la courbe de poids. Elle complète les Objectifs personnels.
 _À éviter_ : But, cible de poids
 
 **Objectif journalier** :
@@ -77,7 +85,7 @@ L'Objectif journalier multiplié par 7. Il n'est jamais saisi directement.
 _À éviter_ : Quota hebdo
 
 **Plafond** :
-Un Objectif journalier à ne pas dépasser (AGS, Sel).
+Un Objectif journalier à ne pas dépasser (AGS, Sucres, Sel).
 _À éviter_ : Limite, maximum
 
 **Cible** :
