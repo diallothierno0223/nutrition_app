@@ -7,6 +7,7 @@
 **Status:** ready-for-agent
 
 - [ ] Vérifier et documenter le modèle Gemini à utiliser (vision + sortie JSON structurée).
+- [ ] Vérifier qu'un vrai `supabase functions deploy` embarque bien le noyau métier importé depuis l'extérieur de `supabase/` (repris du ticket 01, testé seulement en local) ; sinon, ajuster la configuration.
 - [ ] Port IA avec implémentation Gemini et implémentation factice ; sortie JSON à schéma imposé.
 - [ ] `analyser-repas` écrit les Constituants, les totaux (somme des Constituants, calculée par le noyau métier) et le Commentaire du repas (10 lignes max, point fort / point faible / amélioration).
 - [ ] Le Commentaire tient compte de ce qui reste dans les Objectifs du jour (s'ils existent).

@@ -8,7 +8,11 @@
 
 - [ ] L'app se lance sur Android via une build de développement (pas Expo Go).
 - [ ] Connexion par e-mail et mot de passe ; la session reste ouverte après redémarrage de l'app.
-- [ ] Les inscriptions sont désactivées ; RLS est activée et un accès non authentifié ne lit rien (testé).
-- [ ] Le module du noyau métier est importable depuis l'app et depuis une Edge Function, avec un premier test unitaire.
-- [ ] Les 3 suites de test se lancent chacune par une commande documentée dans le README.
-- [ ] Les 5 onglets existent (vides) : Dashboard, Saisie « + », Objectifs & Profil, Règles du médecin, Rendez-vous du samedi.
+- [x] Les inscriptions sont désactivées ; RLS est activée et un accès non authentifié ne lit rien (testé).
+- [x] Le module du noyau métier est importable depuis l'app et depuis une Edge Function, avec un premier test unitaire.
+- [x] Les 3 suites de test se lancent chacune par une commande documentée dans le README.
+- [x] Les 5 onglets existent (vides) : Dashboard, Saisie « + », Objectifs & Profil, Règles du médecin, Rendez-vous du samedi.
+
+## Avancement
+
+Implémenté sur la branche `conception-v1`. Reste à vérifier sur le téléphone, après la première build EAS (compte Expo requis) : le lancement de l'app via la build de développement, et la session qui reste ouverte après un redémarrage. Les libellés des onglets sont raccourcis (Saisie, Objectifs, Médecin, Samedi) pour tenir dans la barre Android ; les titres complets sont en tête de chaque écran. L'IA factice arrive avec le port IA (ticket 02), le faux Supabase de la synchro avec la file d'envoi (ticket 17).
