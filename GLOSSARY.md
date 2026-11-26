@@ -10,6 +10,10 @@ Application personnelle (un seul utilisateur) de suivi nutritionnel, centrée su
 Ce que l'utilisateur a mangé à un moment donné, décrit librement en texte et/ou en photo, puis décomposé en Constituants.
 _À éviter_ : Plat (sauf pour un Repas réutilisable), entrée, saisie
 
+**Note** :
+Le texte facultatif qui accompagne la photo d'un Repas (huile, cuisson, sauce, quantité). Elle tient la place de la description texte et l'IA la lit avec la photo.
+_À éviter_ : Légende, commentaire (réservé au Commentaire du repas)
+
 **Constituant** :
 Un aliment d'un Repas, avec sa quantité estimée et ses valeurs nutritionnelles. Les totaux d'un Repas sont la somme de ses Constituants.
 _À éviter_ : Ingrédient, aliment, composant

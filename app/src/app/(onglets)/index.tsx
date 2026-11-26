@@ -93,7 +93,7 @@ export default function Dashboard() {
               : "en attente"}
           </ThemedText>
           <ThemedText type="small" themeColor="textSecondary" numberOfLines={2}>
-            {repas.description}
+            {repas.description || "Repas en photo"}
           </ThemedText>
         </Pressable>
       ))}

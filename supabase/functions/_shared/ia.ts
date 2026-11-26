@@ -19,8 +19,13 @@ import {
   type TypeDeRepas,
 } from "../../../noyau/index.ts";
 
+/** Une photo de l'assiette, relue dans le stockage côté serveur. */
+export type PhotoDuRepas = { typeMime: string; octets: Uint8Array };
+
 export type DemandeAnalyseRepas = {
+  /** La description saisie, ou la note qui accompagne la photo (éventuellement vide). */
   description: string;
+  photo: PhotoDuRepas | null;
   typeDeRepas: TypeDeRepas;
   /** Ce qui reste dans les Objectifs du jour avant ce Repas ; null si aucun Objectif n'est défini. */
   objectifsRestants: ObjectifsJournaliers | null;
@@ -73,7 +78,8 @@ export function iaDepuisEnvironnement(): IA {
 }
 
 const iaFactice: IA = {
-  async analyserRepas({ description, objectifsRestants, reglesDuMedecin }) {
+  async analyserRepas({ description, photo, objectifsRestants, reglesDuMedecin }) {
+    const recue = photo ? `\nPhoto reçue (${photo.octets.length} octets).` : "";
     const restants = objectifsRestants ? `\n${decrireObjectifsRestants(objectifsRestants)}` : "";
     const regles = reglesDuMedecin.length > 0 ? `\n${decrireRegles(reglesDuMedecin)}` : "";
     return lireAnalyseRepas({
@@ -83,7 +89,7 @@ const iaFactice: IA = {
         { nom: "Sauce arachide", quantite: 200, unite: "ml", equivalent_cuisine: "1 louche",
           calories: 320, proteines: 12, glucides: 10, sucres: 4, lipides: 26, ags: 6.5, fibres: 3, sel: 1.8 },
       ],
-      commentaire: `Analyse factice de « ${description} ».\nPoint fort : des glucides pour l'énergie.\nPoint faible : sauce riche en AGS.\nAmélioration : moins de pâte d'arachide.${restants}${regles}`,
+      commentaire: `Analyse factice de « ${description} ».\nPoint fort : des glucides pour l'énergie.\nPoint faible : sauce riche en AGS.\nAmélioration : moins de pâte d'arachide.${recue}${restants}${regles}`,
     });
   },
 
@@ -121,7 +127,7 @@ const SCHEMA_ANALYSE = {
 };
 
 const CONSIGNES_ANALYSE = `Tu es nutritionniste. Tu aides une personne atteinte d'hypercholestérolémie génétique, qui mange souvent de la cuisine africaine (mafé, fonio, attiéké, poisson braisé…), à suivre son alimentation.
-À partir de la description d'un repas, décompose-le en Constituants (un aliment par Constituant) et estime pour chacun :
+À partir de la description d'un repas, ou de sa photo accompagnée d'une note (huile, cuisson, sauce…), décompose-le en Constituants (un aliment par Constituant) et estime pour chacun :
 - la quantité en grammes (g) ou millilitres (ml), et son équivalent en mesure de cuisine (« 1 louche », « 2 c. à soupe ») ;
 - calories (kcal), protéines, glucides, dont sucres (sucres), lipides, acides gras saturés (ags), fibres et sel, tous en grammes, pour la quantité estimée.
 Compte les huiles et matières grasses de cuisson comme des Constituants à part quand elles sont probables.
@@ -172,14 +178,30 @@ function decrireDemandeEstimation(demande: DemandeEstimationObjectifs): string {
   ].join("\n");
 }
 
+/** Les octets en base64, par morceaux pour ne pas dépasser la pile avec une photo de plusieurs centaines de Ko. */
+function enBase64(octets: Uint8Array): string {
+  let binaire = "";
+  for (let i = 0; i < octets.length; i += 0x8000) binaire += String.fromCharCode(...octets.subarray(i, i + 0x8000));
+  return btoa(binaire);
+}
+
 /** Appelle Gemini avec une sortie JSON à schéma imposé et renvoie le JSON brut (à valider par le noyau). */
-async function appelerGemini(cle: string, modele: string, consignes: string, demande: string, schema: unknown) {
+async function appelerGemini(
+  cle: string,
+  modele: string,
+  consignes: string,
+  demande: string,
+  schema: unknown,
+  photo: PhotoDuRepas | null = null,
+) {
+  const parties: unknown[] = [{ text: demande }];
+  if (photo) parties.push({ inlineData: { mimeType: photo.typeMime, data: enBase64(photo.octets) } });
   const reponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modele}:generateContent`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": cle },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: consignes }] },
-      contents: [{ role: "user", parts: [{ text: demande }] }],
+      contents: [{ role: "user", parts: parties }],
       generationConfig: { responseMimeType: "application/json", responseJsonSchema: schema },
     }),
   });
@@ -199,14 +221,14 @@ async function appelerGemini(cle: string, modele: string, consignes: string, dem
 
 function iaGemini(cle: string, modele: string): IA {
   return {
-    async analyserRepas({ description, typeDeRepas, objectifsRestants, reglesDuMedecin }) {
+    async analyserRepas({ description, photo, typeDeRepas, objectifsRestants, reglesDuMedecin }) {
       const demande = [
         `Type de repas : ${libelleDuTypeDeRepas(typeDeRepas)}`,
-        `Description : ${description}`,
+        photo ? `Photo du repas jointe. Note : ${description || "aucune"}` : `Description : ${description}`,
         `Objectifs restants avant ce repas :\n${decrireObjectifsRestants(objectifsRestants)}`,
         `Règles du médecin (elles priment) :\n${decrireRegles(reglesDuMedecin)}`,
       ].join("\n");
-      return lireAnalyseRepas(await appelerGemini(cle, modele, CONSIGNES_ANALYSE, demande, SCHEMA_ANALYSE));
+      return lireAnalyseRepas(await appelerGemini(cle, modele, CONSIGNES_ANALYSE, demande, SCHEMA_ANALYSE, photo));
     },
 
     async estimerObjectifs(demande) {

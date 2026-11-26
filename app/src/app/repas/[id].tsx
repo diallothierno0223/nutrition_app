@@ -1,3 +1,4 @@
+import { Image } from "expo-image";
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -7,6 +8,7 @@ import { Ecran } from "@/components/ecran";
 import { ThemedText } from "@/components/themed-text";
 import { ValeursNutritionnelles } from "@/components/valeurs-nutritionnelles";
 import { Spacing } from "@/constants/theme";
+import { adresseDePhoto } from "@/donnees/photos";
 import { analyserRepas, chargerRepas, type RepasDetaille } from "@/donnees/repas";
 import { useTheme } from "@/hooks/use-theme";
 import { libelleDuTypeDeRepas, totauxDuRepas } from "@noyau";
@@ -16,11 +18,18 @@ export default function DetailRepas() {
   const theme = useTheme();
   const [repas, setRepas] = useState<RepasDetaille | null | undefined>(undefined);
   const [relance, setRelance] = useState(false);
+  const [adressePhoto, setAdressePhoto] = useState<string | null>(null);
 
   const charger = useCallback(() => chargerRepas(id).then(setRepas, () => setRepas(null)), [id]);
   useEffect(() => {
     charger();
   }, [charger]);
+
+  const photoChemin = repas?.photo_chemin;
+  useEffect(() => {
+    setAdressePhoto(null);
+    if (photoChemin) adresseDePhoto(photoChemin).then(setAdressePhoto, () => setAdressePhoto(null));
+  }, [photoChemin]);
 
   async function relancer() {
     setRelance(true);
@@ -46,7 +55,8 @@ export default function DetailRepas() {
   return (
     <Ecran>
       <Stack.Screen options={{ title: `${libelleDuTypeDeRepas(repas.type_repas)} · ${heure}` }} />
-      <ThemedText>{repas.description}</ThemedText>
+      {adressePhoto && <Image source={{ uri: adressePhoto }} style={styles.photo} contentFit="cover" />}
+      {repas.description !== "" && <ThemedText>{repas.description}</ThemedText>}
 
       {repas.statut === "en_attente" ? (
         <>
@@ -85,4 +95,5 @@ export default function DetailRepas() {
 
 const styles = StyleSheet.create({
   carte: { borderRadius: 12, padding: Spacing.three, gap: Spacing.two },
+  photo: { width: "100%", aspectRatio: 4 / 3, borderRadius: 12 },
 });

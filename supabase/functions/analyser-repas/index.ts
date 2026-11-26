@@ -9,13 +9,21 @@ import {
   type ObjectifsJournaliers,
   type ValeursNutritionnelles,
 } from "../../../noyau/index.ts";
-import { iaDepuisEnvironnement } from "../_shared/ia.ts";
+import { iaDepuisEnvironnement, type PhotoDuRepas } from "../_shared/ia.ts";
 import { reglesActives } from "../_shared/regles.ts";
 
 const COLONNES_NUTRIMENTS = NUTRIMENTS.join(", ");
 const RIEN = Object.fromEntries(NUTRIMENTS.map((n) => [n, 0])) as ValeursNutritionnelles;
 
 type RepasAAnalyser = { id: string; journee: string; statut: string };
+
+/** Relit la photo du Repas dans le bucket privé, avec la session de l'appelant. */
+async function lirePhoto(supabase: SupabaseClient, chemin: string | null): Promise<PhotoDuRepas | null> {
+  if (!chemin) return null;
+  const { data, error } = await supabase.storage.from("photos-repas").download(chemin);
+  if (error || !data) throw new Error(`photo illisible : ${error?.message ?? "absente"}`);
+  return { typeMime: data.type || "image/jpeg", octets: new Uint8Array(await data.arrayBuffer()) };
+}
 
 /**
  * Ce qui reste des Objectifs de la Journée sans compter ce Repas : les totaux du jour (vue SQL, Repas analysés
@@ -64,7 +72,7 @@ Deno.serve(async (requete) => {
 
   const { data: repas } = await supabase
     .from("repas")
-    .select("id, description, type_repas, journee, statut")
+    .select("id, description, photo_chemin, type_repas, journee, statut")
     .eq("id", repasId)
     .maybeSingle();
   if (!repas) return Response.json({ erreur: "Repas introuvable" }, { status: 404 });
@@ -72,6 +80,7 @@ Deno.serve(async (requete) => {
   try {
     const analyse = await iaDepuisEnvironnement().analyserRepas({
       description: repas.description,
+      photo: await lirePhoto(supabase, repas.photo_chemin),
       typeDeRepas: repas.type_repas,
       objectifsRestants: await objectifsRestantsSansCeRepas(supabase, repas),
       reglesDuMedecin: await reglesActives(supabase),

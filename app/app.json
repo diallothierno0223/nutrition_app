@@ -33,7 +33,14 @@
           "imageWidth": 76
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "La caméra sert à photographier tes repas pour les analyser.",
+          "photosPermission": "La galerie sert à choisir la photo d'un repas à analyser."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
