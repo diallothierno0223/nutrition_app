@@ -1,5 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { journeeDe, libelleDuTypeDeRepas, typeDeRepas } from "./index.ts";
+import { estUneJourneeValide, journeeDe, libelleDuTypeDeRepas, typeDeRepas } from "./index.ts";
+
+describe("validation d'une date de Journée (AAAA-MM-JJ)", () => {
+  it("accepte une date réelle", () => {
+    expect(estUneJourneeValide("2026-11-20")).toBe(true);
+    expect(estUneJourneeValide("2028-02-29")).toBe(true);
+  });
+
+  it("refuse une date impossible ou mal écrite", () => {
+    expect(estUneJourneeValide("2026-13-45")).toBe(false);
+    expect(estUneJourneeValide("2026-02-30")).toBe(false);
+    expect(estUneJourneeValide("2027-02-29")).toBe(false);
+    expect(estUneJourneeValide("20/11/2026")).toBe(false);
+    expect(estUneJourneeValide("")).toBe(false);
+  });
+});
 
 describe("libellés des Types de repas", () => {
   it("donne le libellé affiché de chaque Type de repas", () => {

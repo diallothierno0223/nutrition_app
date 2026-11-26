@@ -26,6 +26,15 @@ function partiesLocales(instant: Date, fuseau: string) {
   return { annee: valeur("year"), mois: valeur("month"), jour: valeur("day"), heure: Number(valeur("hour")) };
 }
 
+/** Vrai si le texte est une date réelle au format AAAA-MM-JJ (« 2026-02-30 » est refusé). */
+export function estUneJourneeValide(texte: string): boolean {
+  const morceaux = /^(\d{4})-(\d{2})-(\d{2})$/.exec(texte);
+  if (!morceaux) return false;
+  const [annee, mois, jour] = morceaux.slice(1).map(Number) as [number, number, number];
+  const date = new Date(Date.UTC(annee, mois - 1, jour));
+  return date.getUTCFullYear() === annee && date.getUTCMonth() === mois - 1 && date.getUTCDate() === jour;
+}
+
 /** La Journée (AAAA-MM-JJ, de 00 h 00 à 23 h 59 dans le fuseau donné) à laquelle un instant est rattaché. */
 export function journeeDe(instant: Date, fuseau: string): string {
   const { annee, mois, jour } = partiesLocales(instant, fuseau);

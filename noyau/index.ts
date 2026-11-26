@@ -5,3 +5,4 @@ export * from "./journee.ts";
 export * from "./repas.ts";
 export * from "./analyse.ts";
 export * from "./jauges.ts";
+export * from "./regles.ts";

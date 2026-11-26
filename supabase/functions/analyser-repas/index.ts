@@ -10,6 +10,7 @@ import {
   type ValeursNutritionnelles,
 } from "../../../noyau/index.ts";
 import { iaDepuisEnvironnement } from "../_shared/ia.ts";
+import { reglesActives } from "../_shared/regles.ts";
 
 const COLONNES_NUTRIMENTS = NUTRIMENTS.join(", ");
 const RIEN = Object.fromEntries(NUTRIMENTS.map((n) => [n, 0])) as ValeursNutritionnelles;
@@ -73,6 +74,7 @@ Deno.serve(async (requete) => {
       description: repas.description,
       typeDeRepas: repas.type_repas,
       objectifsRestants: await objectifsRestantsSansCeRepas(supabase, repas),
+      reglesDuMedecin: await reglesActives(supabase),
     });
     const { error } = await supabase.rpc("enregistrer_analyse", {
       p_repas_id: repas.id,

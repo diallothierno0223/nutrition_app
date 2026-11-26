@@ -4,12 +4,14 @@
 // Toute réponse passe par la lecture défensive du noyau métier avant d'être utilisée.
 import {
   NUTRIMENTS,
+  libelleDeCategorie,
   libelleDuNutriment,
   libelleDuTypeDeRepas,
   uniteDuNutriment,
   lireAnalyseRepas,
   type AnalyseRepas,
   type ObjectifsJournaliers,
+  type RegleDuMedecin,
   type TypeDeRepas,
 } from "../../../noyau/index.ts";
 
@@ -18,7 +20,15 @@ export type DemandeAnalyseRepas = {
   typeDeRepas: TypeDeRepas;
   /** Ce qui reste dans les Objectifs du jour avant ce Repas ; null si aucun Objectif n'est défini. */
   objectifsRestants: ObjectifsJournaliers | null;
+  /** Les Règles du médecin actives (jamais les archivées). Elles priment sur les repères par défaut. */
+  reglesDuMedecin: RegleDuMedecin[];
 };
+
+/** « À éviter : Huile de palme », une ligne par Règle active. */
+export function decrireRegles(regles: RegleDuMedecin[]): string {
+  if (regles.length === 0) return "Aucune Règle du médecin enregistrée.";
+  return regles.map((r) => `${libelleDeCategorie(r.categorie)} : ${r.texte}`).join("\n");
+}
 
 /** « Calories : reste 1985 kcal », une ligne par nutriment qui a un Objectif. */
 export function decrireObjectifsRestants(restants: ObjectifsJournaliers | null): string {
@@ -47,8 +57,9 @@ export function iaDepuisEnvironnement(): IA {
 }
 
 const iaFactice: IA = {
-  async analyserRepas({ description, objectifsRestants }) {
+  async analyserRepas({ description, objectifsRestants, reglesDuMedecin }) {
     const restants = objectifsRestants ? `\n${decrireObjectifsRestants(objectifsRestants)}` : "";
+    const regles = reglesDuMedecin.length > 0 ? `\n${decrireRegles(reglesDuMedecin)}` : "";
     return lireAnalyseRepas({
       constituants: [
         { nom: "Riz blanc cuit", quantite: 150, unite: "g", equivalent_cuisine: "1 bol",
@@ -56,7 +67,7 @@ const iaFactice: IA = {
         { nom: "Sauce arachide", quantite: 200, unite: "ml", equivalent_cuisine: "1 louche",
           calories: 320, proteines: 12, glucides: 10, sucres: 4, lipides: 26, ags: 6.5, fibres: 3, sel: 1.8 },
       ],
-      commentaire: `Analyse factice de « ${description} ».\nPoint fort : des glucides pour l'énergie.\nPoint faible : sauce riche en AGS.\nAmélioration : moins de pâte d'arachide.${restants}`,
+      commentaire: `Analyse factice de « ${description} ».\nPoint fort : des glucides pour l'énergie.\nPoint faible : sauce riche en AGS.\nAmélioration : moins de pâte d'arachide.${restants}${regles}`,
     });
   },
 };
@@ -89,15 +100,17 @@ const CONSIGNES_ANALYSE = `Tu es nutritionniste. Tu aides une personne atteinte 
 Compte les huiles et matières grasses de cuisson comme des Constituants à part quand elles sont probables.
 Rédige un Commentaire du repas en français, 10 lignes au maximum : un point fort, un point faible, une amélioration possible, en pensant d'abord aux acides gras saturés et aux fibres.
 Tiens compte de ce qui restait dans les Objectifs du jour avant ce repas (une valeur négative signifie que l'Objectif était déjà dépassé), et conseille la suite de la journée.
+Les Règles du médecin fournies priment sur tes repères généraux : signale explicitement tout aliment du repas qu'elles demandent d'éviter.
 Réponds uniquement avec le JSON demandé.`;
 
 function iaGemini(cle: string, modele: string): IA {
   return {
-    async analyserRepas({ description, typeDeRepas, objectifsRestants }) {
+    async analyserRepas({ description, typeDeRepas, objectifsRestants, reglesDuMedecin }) {
       const demande = [
         `Type de repas : ${libelleDuTypeDeRepas(typeDeRepas)}`,
         `Description : ${description}`,
         `Objectifs restants avant ce repas :\n${decrireObjectifsRestants(objectifsRestants)}`,
+        `Règles du médecin (elles priment) :\n${decrireRegles(reglesDuMedecin)}`,
       ].join("\n");
       const reponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modele}:generateContent`, {
         method: "POST",
