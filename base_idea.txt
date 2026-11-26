@@ -1,0 +1,64 @@
+Application mobile de suivi nutritionnel personnalisé (focus contrôle du cholestérol génétique), connectée à Google Sheets (base de données), Google Drive (stockage des photos) et Gemini API (analyse texte + vision multimodale et génération de menus).
+
+---
+
+Les 5 Onglets de l'Application
+1. Dashboard (Vue d'accueil)
+
+• Récapitulatif du jour : Jauges en temps réel (Calories, Protéines, Glucides, Lipides totaux + Lipides saturés pour le cholestérol).
+
+• Hydratation : Compteur d'eau rapide (+250 ml / +500 ml).
+
+• Récapitulatif de la semaine : Suivi glissant du Lundi au Dimanche.
+
+• Moyenne globale : Vue de fond sur l'ensemble de l'historique.
+
+• Alertes intelligentes : Notification visuelle en cas d'approche ou de dépassement des quotas (graisses saturées, calories).
+
+2. Saisie Rapide (Bouton "+")
+
+• Photo seule : Prise en photo de l'assiette pour que Gemini Vision estime les quantités et macros.
+
+• Photo + Note rapide : Ajout de précisions invisibles sur la photo (type d'huile, mode de cuisson, sauce allégée).
+
+• Texte seul : Description libre du repas + support des plats récurrents / batch cooking.
+
+• Validation rapide : Aperçu de l'estimation de l'IA (Valider ou Corriger) avant enregistrement dans le Sheet.
+
+3. Objectifs & Quotas
+
+• Définition des cibles journalières et hebdomadaires (Calories, Protéines, Glucides, Lipides, plafond de graisses saturées, objectif d'eau en litres).
+
+4. Recommandations Médecin
+
+• Carnet évolutif des consignes médicales (aliments à privilégier, à éviter, seuils spécifiques).
+
+• Injecté en permanence dans le prompt système de Gemini pour guider l'analyse des repas et la création des recettes.
+
+5. Idées Repas & Liste de Courses (Rendez-vous du Samedi)
+
+• Génération automatique chaque samedi matin en croisant l'historique de la semaine (Lundi–Vendredi), les objectifs et les règles médecin.
+
+• Propositions de plats orientés cuisine africaine adaptés au régime anti-cholestérol (ex. mafé allégé, poisson braisé, fonio, attiéké, gestion des huiles).
+
+• Liste de courses consolidée associée avec cases à cocher.
+
+---
+
+Rythme des Notifications
+• Matin : Rappel léger petit-déjeuner + verre d'eau + objectif du jour.
+
+• Midi : Rappel de saisie du déjeuner et de l'hydratation.
+
+• Soir : Bilan des quotas restants pour le dîner + rappel d'eau.
+
+• Samedi matin : Notification de disponibilité du menu de la semaine et de la liste de courses.
+
+---
+
+Architecture Cible (Résumé)
+• Front-end : Application mobile légère pour la saisie photo/texte et la consultation des jauges.
+
+• Stockage : Google Sheets (onglets : Règles Médecin, Journal Repas avec lien photo, Base Recettes, Suggestions Samedi) + Google Drive pour les photos d'assiettes.
+
+• Intelligence : Gemini API (parsing nutritionnel texte & image, contrôle cholestérol, suggestions hebdomadaires).

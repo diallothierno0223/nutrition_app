@@ -1,0 +1,21 @@
+{
+  "name": "nutrition-app",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:noyau": "vitest run --project noyau",
+    "test:synchro": "vitest run --project synchro",
+    "test:backend": "vitest run --project backend",
+    "test": "vitest run",
+    "supabase": "supabase"
+  },
+  "devDependencies": {
+    "@supabase/supabase-js": "^2.119.2",
+    "@types/node": "^26.6.11",
+    "supabase": "^3.4.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.2"
+  }
+}
