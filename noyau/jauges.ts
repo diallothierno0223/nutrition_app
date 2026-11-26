@@ -1,4 +1,4 @@
-import { NUTRIMENTS, sensDuNutriment, type Nutriment } from "./nutriments.ts";
+import { NUTRIMENTS, sensDuNutriment, type Nutriment, type Sens } from "./nutriments.ts";
 import type { ValeursNutritionnelles } from "./repas.ts";
 
 /** Les Objectifs journaliers ; null quand l'utilisateur n'en a pas défini pour ce nutriment. */
@@ -17,12 +17,21 @@ export const TOLERANCE_PLAGE = 10;
  * Cible : jamais d'alerte en journée.
  */
 export function etatDeJauge(nutriment: Nutriment, valeur: number, objectif: number | null): Jauge {
+  return etatSelonSens(sensDuNutriment(nutriment), valeur, objectif);
+}
+
+/** L'Hydratation (en ml) est une Cible : progression affichée, jamais d'alerte en journée. */
+export function jaugeHydratation(totalMl: number, objectifMl: number | null): Jauge {
+  return etatSelonSens("cible", totalMl, objectifMl);
+}
+
+function etatSelonSens(sens: Sens, valeur: number, objectif: number | null): Jauge {
   if (objectif === null || objectif <= 0) return { etat: "sans_objectif", pourcentage: null };
 
   const pourcentage = (valeur * 100) / objectif;
   const jauge = (etat: EtatDeJauge): Jauge => ({ etat, pourcentage: Math.round(pourcentage) });
 
-  switch (sensDuNutriment(nutriment)) {
+  switch (sens) {
     case "plafond":
       if (pourcentage > 100) return jauge("depasse");
       if (pourcentage >= SEUIL_APPROCHE_PLAFOND) return jauge("approche");

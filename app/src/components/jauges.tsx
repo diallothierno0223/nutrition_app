@@ -1,9 +1,9 @@
 import { StyleSheet, View } from "react-native";
 
+import { BarreDeJauge } from "@/components/barre-de-jauge";
 import { ThemedText } from "@/components/themed-text";
 import { formaterValeur } from "@/components/valeurs-nutritionnelles";
-import { CouleursJauge, Spacing } from "@/constants/theme";
-import { useTheme } from "@/hooks/use-theme";
+import { Spacing } from "@/constants/theme";
 import {
   NUTRIMENTS,
   etatDeJauge,
@@ -21,13 +21,12 @@ const MENTIONS: Partial<Record<EtatDeJauge, string>> = {
 
 /** Les jauges du jour : consommation face à l'Objectif journalier, colorées selon leur état. */
 export function Jauges({ totaux, objectifs }: { totaux: ValeursNutritionnelles; objectifs: ObjectifsJournaliers }) {
-  const theme = useTheme();
   return (
     <View style={styles.liste}>
       {NUTRIMENTS.map((n) => {
         const objectif = objectifs[n];
-        const { etat, pourcentage } = etatDeJauge(n, totaux[n], objectif);
-        const mention = MENTIONS[etat];
+        const jauge = etatDeJauge(n, totaux[n], objectif);
+        const mention = MENTIONS[jauge.etat];
         return (
           <View key={n} style={styles.jauge}>
             <View style={styles.entete}>
@@ -38,14 +37,7 @@ export function Jauges({ totaux, objectifs }: { totaux: ValeursNutritionnelles; 
                 {mention && ` · ${mention}`}
               </ThemedText>
             </View>
-            <View style={[styles.piste, { backgroundColor: theme.backgroundElement }]}>
-              <View
-                style={[
-                  styles.remplissage,
-                  { width: `${Math.min(pourcentage ?? 0, 100)}%`, backgroundColor: CouleursJauge[etat] },
-                ]}
-              />
-            </View>
+            <BarreDeJauge jauge={jauge} />
           </View>
         );
       })}
@@ -57,6 +49,4 @@ const styles = StyleSheet.create({
   liste: { gap: Spacing.three },
   jauge: { gap: Spacing.one },
   entete: { flexDirection: "row", justifyContent: "space-between", gap: Spacing.two },
-  piste: { height: 8, borderRadius: 4, overflow: "hidden" },
-  remplissage: { height: "100%", borderRadius: 4 },
 });

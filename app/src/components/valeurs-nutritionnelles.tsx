@@ -11,6 +11,11 @@ export function formaterValeur(nutriment: Nutriment, valeur: number): string {
   return `${arrondie} ${unite}`;
 }
 
+/** Un volume d'eau stocké en ml, affiché en litres : « 1,25 L ». */
+export function formaterLitres(ml: number): string {
+  return `${(Math.round(ml / 10) / 100).toLocaleString("fr-FR")} L`;
+}
+
 /** Les nutriments d'un Repas ou d'une Journée, en grille compacte. */
 export function ValeursNutritionnelles({ valeurs }: { valeurs: ValeursNutritionnelles }) {
   return (

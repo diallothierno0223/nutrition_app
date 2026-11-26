@@ -4,12 +4,14 @@ import { Pressable, StyleSheet } from "react-native";
 
 import { useSession } from "@/auth/session";
 import { Bouton } from "@/components/bouton";
+import { CompteurEau } from "@/components/compteur-eau";
 import { CourbeDePoids } from "@/components/courbe-de-poids";
 import { Ecran } from "@/components/ecran";
 import { ThemedText } from "@/components/themed-text";
 import { Jauges } from "@/components/jauges";
 import { formaterValeur } from "@/components/valeurs-nutritionnelles";
 import { Spacing } from "@/constants/theme";
+import { chargerObjectifEau, eauDuJour } from "@/donnees/hydratation";
 import { chargerObjectifs, totauxDuJour } from "@/donnees/objectifs";
 import { listerPesees, type Pesee } from "@/donnees/profil";
 import { fuseauDuTelephone, repasDeLaJournee, type RepasDetaille } from "@/donnees/repas";
@@ -28,6 +30,8 @@ type DonneesDuJour = {
   totaux: ValeursNutritionnelles;
   objectifs: ObjectifsJournaliers;
   pesees: Pesee[];
+  eauMl: number;
+  objectifEauMl: number | null;
 };
 
 export default function Dashboard() {
@@ -36,19 +40,25 @@ export default function Dashboard() {
   const [donnees, setDonnees] = useState<DonneesDuJour | null>(null);
   const [erreur, setErreur] = useState(false);
 
-  // Rechargé à chaque retour sur l'onglet : les jauges suivent les Repas enregistrés entre-temps.
-  useFocusEffect(
-    useCallback(() => {
-      const aujourdhui = journeeDe(new Date(), fuseauDuTelephone());
-      Promise.all([repasDeLaJournee(aujourdhui), totauxDuJour(aujourdhui), chargerObjectifs(), listerPesees(14)]).then(
-        ([repas, totaux, objectifs, pesees]) => {
-          setDonnees({ repas, totaux, objectifs, pesees });
-          setErreur(false);
-        },
-        () => setErreur(true),
-      );
-    }, []),
-  );
+  // Rechargé à chaque retour sur l'onglet (et après un ajout d'eau) : les jauges suivent la Journée.
+  const charger = useCallback(() => {
+    const journee = journeeDe(new Date(), fuseauDuTelephone());
+    Promise.all([
+      repasDeLaJournee(journee),
+      totauxDuJour(journee),
+      chargerObjectifs(),
+      listerPesees(14),
+      eauDuJour(journee),
+      chargerObjectifEau(),
+    ]).then(
+      ([repas, totaux, objectifs, pesees, eauMl, objectifEauMl]) => {
+        setDonnees({ repas, totaux, objectifs, pesees, eauMl, objectifEauMl });
+        setErreur(false);
+      },
+      () => setErreur(true),
+    );
+  }, []);
+  useFocusEffect(charger);
 
   const journal = donnees?.repas;
 
@@ -57,6 +67,14 @@ export default function Dashboard() {
       {erreur && <ThemedText themeColor="textSecondary">La base ne répond pas.</ThemedText>}
 
       {donnees && <Jauges totaux={donnees.totaux} objectifs={donnees.objectifs} />}
+
+      {donnees && (
+        <CompteurEau
+          totalMl={donnees.eauMl}
+          objectifMl={donnees.objectifEauMl}
+          onChange={charger}
+        />
+      )}
 
       <ThemedText type="smallBold">Poids</ThemedText>
       {donnees && <CourbeDePoids pesees={donnees.pesees} />}

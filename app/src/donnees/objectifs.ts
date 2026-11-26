@@ -14,10 +14,14 @@ export async function chargerObjectifs(): Promise<ObjectifsJournaliers> {
   return (data as ObjectifsJournaliers | null) ?? AUCUN_OBJECTIF;
 }
 
-export async function enregistrerObjectifs(objectifs: ObjectifsJournaliers): Promise<void> {
+/**
+ * Applique les Objectifs journaliers et l'objectif d'eau (ml). La date est posée explicitement : appliquer, même
+ * à l'identique, vaut validation et fait disparaître la proposition de réestimation.
+ */
+export async function enregistrerObjectifs(objectifs: ObjectifsJournaliers, eauMl: number | null): Promise<void> {
   const { error } = await supabase
     .from("objectifs_journaliers")
-    .upsert({ ...objectifs, modifie_le: new Date().toISOString() });
+    .upsert({ ...objectifs, eau_ml: eauMl, modifie_le: new Date().toISOString() });
   if (error) throw error;
 }
 

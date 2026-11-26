@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { etatDeJauge, objectifsRestants } from "./index.ts";
+import { etatDeJauge, jaugeHydratation, objectifsRestants } from "./index.ts";
 
 describe("état d'une jauge de Plafond (AGS, Sel)", () => {
   it("reste normale sous 80 %", () => {
@@ -46,6 +46,17 @@ describe("jauge en général", () => {
   it("n'a pas d'état sans Objectif défini", () => {
     expect(etatDeJauge("sel", 3, null)).toEqual({ etat: "sans_objectif", pourcentage: null });
     expect(etatDeJauge("sel", 3, 0)).toEqual({ etat: "sans_objectif", pourcentage: null });
+  });
+});
+
+describe("jauge d'Hydratation (Cible)", () => {
+  it("donne la progression sans jamais alerter en journée", () => {
+    expect(jaugeHydratation(1250, 2000)).toEqual({ etat: "normal", pourcentage: 63 });
+    expect(jaugeHydratation(0, 2000)).toEqual({ etat: "normal", pourcentage: 0 });
+  });
+
+  it("n'a pas d'état sans objectif d'eau", () => {
+    expect(jaugeHydratation(500, null)).toEqual({ etat: "sans_objectif", pourcentage: null });
   });
 });
 

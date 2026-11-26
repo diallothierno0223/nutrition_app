@@ -9,6 +9,7 @@ import { SectionPesees } from "@/components/section-pesees";
 import { SectionProfil } from "@/components/section-profil";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
+import { chargerObjectifEau } from "@/donnees/hydratation";
 import { chargerObjectifs, enregistrerObjectifs } from "@/donnees/objectifs";
 import {
   chargerProfil,
@@ -62,6 +63,8 @@ type Etat = {
   actuels: Saisie;
   /** Ce qui sera appliqué : les Objectifs actuels, ou la proposition de l'IA modifiée à la main. */
   saisie: Saisie;
+  /** Objectif d'eau saisi en litres (fixé à la main, l'IA ne l'estime pas). */
+  eauLitres: string;
   aReestimer: boolean;
   sansObjectifs: boolean;
 };
@@ -75,14 +78,15 @@ export default function ObjectifsEtProfil() {
 
   // Recharger écarte toute proposition ouverte : on n'applique jamais autre chose que ce qui est affiché.
   const charger = useCallback(() => {
-    Promise.all([chargerProfil(), listerPesees(), chargerObjectifs(), datesDeModification()]).then(
-      ([profil, pesees, objectifs, dates]) => {
+    Promise.all([chargerProfil(), listerPesees(), chargerObjectifs(), chargerObjectifEau(), datesDeModification()]).then(
+      ([profil, pesees, objectifs, eauMl, dates]) => {
         setProposition(null);
         setEtat({
           profil,
           pesees,
           actuels: versSaisie(objectifs),
           saisie: versSaisie(objectifs),
+          eauLitres: eauMl === null ? "" : String(eauMl / 1000),
           aReestimer: reestimationAProposer(dates.objectifs, dates.sources),
           sansObjectifs: dates.objectifs === null,
         });
@@ -107,9 +111,13 @@ export default function ObjectifsEtProfil() {
     if (!etat) return;
     const objectifs = depuisSaisie(etat.saisie);
     if (!objectifs) return setMessage("Chaque Objectif doit être un nombre positif, ou rester vide.");
+    const eauLitres = lireNombre(etat.eauLitres);
+    if (eauLitres === undefined || (eauLitres !== null && (eauLitres <= 0 || eauLitres > 10))) {
+      return setMessage("L'objectif d'eau doit être entre 0 et 10 litres, ou rester vide.");
+    }
     setEnvoi(true);
     try {
-      await enregistrerObjectifs(objectifs);
+      await enregistrerObjectifs(objectifs, eauLitres === null ? null : Math.round(eauLitres * 1000));
       setMessage("Objectifs appliqués.");
       charger();
     } catch {
@@ -186,6 +194,25 @@ export default function ObjectifsEtProfil() {
           )}
         </View>
       ))}
+
+      <View style={styles.ligne}>
+        <View style={styles.libelle}>
+          <ThemedText>Eau</ThemedText>
+          <ThemedText type="small" themeColor="textSecondary">
+            litres, {AIDE_SENS.cible}
+          </ThemedText>
+        </View>
+        <Champ
+          style={styles.valeur}
+          keyboardType="decimal-pad"
+          placeholder="—"
+          value={etat.eauLitres}
+          onChangeText={(eauLitres) => {
+            setEtat({ ...etat, eauLitres });
+            setMessage(null);
+          }}
+        />
+      </View>
 
       {message && <ThemedText themeColor="textSecondary">{message}</ThemedText>}
       <Bouton libelle={proposition ? "Appliquer la proposition" : "Appliquer"} onPress={appliquer} enCours={envoi} />
