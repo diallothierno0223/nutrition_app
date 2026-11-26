@@ -6,11 +6,15 @@ import {
   NUTRIMENTS,
   libelleDeCategorie,
   libelleDuNutriment,
+  libelleDuNiveauDActivite,
   libelleDuTypeDeRepas,
   uniteDuNutriment,
   lireAnalyseRepas,
+  lireEstimationObjectifs,
   type AnalyseRepas,
+  type EstimationObjectifs,
   type ObjectifsJournaliers,
+  type ProfilCorporel,
   type RegleDuMedecin,
   type TypeDeRepas,
 } from "../../../noyau/index.ts";
@@ -41,8 +45,20 @@ export function decrireObjectifsRestants(restants: ObjectifsJournaliers | null):
   }).join("\n");
 }
 
+export type DemandeEstimationObjectifs = {
+  profil: ProfilCorporel;
+  poidsKg: number;
+  age: number;
+  objectifsPersonnels: string;
+  objectifDePoids: { variationKg: number; echeance: string } | null;
+  /** Les calories de la formule garde-fou (Mifflin-St Jeor × activité). */
+  caloriesGardeFou: number;
+  reglesDuMedecin: RegleDuMedecin[];
+};
+
 export interface IA {
   analyserRepas(demande: DemandeAnalyseRepas): Promise<AnalyseRepas>;
+  estimerObjectifs(demande: DemandeEstimationObjectifs): Promise<EstimationObjectifs>;
 }
 
 export function iaDepuisEnvironnement(): IA {
@@ -68,6 +84,17 @@ const iaFactice: IA = {
           calories: 320, proteines: 12, glucides: 10, sucres: 4, lipides: 26, ags: 6.5, fibres: 3, sel: 1.8 },
       ],
       commentaire: `Analyse factice de « ${description} ».\nPoint fort : des glucides pour l'énergie.\nPoint faible : sauce riche en AGS.\nAmélioration : moins de pâte d'arachide.${restants}${regles}`,
+    });
+  },
+
+  // Calories = formule garde-fou + 100 kcal ; les autres valeurs sont fixes.
+  async estimerObjectifs({ caloriesGardeFou, objectifsPersonnels, reglesDuMedecin }) {
+    const valeurs = { calories: caloriesGardeFou + 100, proteines: 90, glucides: 330, sucres: 40, lipides: 85, ags: 18, fibres: 30, sel: 5 };
+    const contexte = `Objectifs personnels : ${objectifsPersonnels || "aucun"}. Règles du médecin : ${reglesDuMedecin.length}.`;
+    return lireEstimationObjectifs({
+      objectifs: Object.fromEntries(
+        NUTRIMENTS.map((n) => [n, { valeur: valeurs[n], justification: `Estimation factice. ${contexte}` }]),
+      ),
     });
   },
 };
@@ -103,6 +130,73 @@ Tiens compte de ce qui restait dans les Objectifs du jour avant ce repas (une va
 Les Règles du médecin fournies priment sur tes repères généraux : signale explicitement tout aliment du repas qu'elles demandent d'éviter.
 Réponds uniquement avec le JSON demandé.`;
 
+const SCHEMA_ESTIMATION = {
+  type: "object",
+  properties: {
+    objectifs: {
+      type: "object",
+      properties: Object.fromEntries(
+        NUTRIMENTS.map((n) => [
+          n,
+          {
+            type: "object",
+            properties: { valeur: { type: "number", exclusiveMinimum: 0 }, justification: { type: "string" } },
+            required: ["valeur", "justification"],
+          },
+        ]),
+      ),
+      required: [...NUTRIMENTS],
+    },
+  },
+  required: ["objectifs"],
+};
+
+const CONSIGNES_ESTIMATION = `Tu es nutritionniste. Tu fixes les Objectifs journaliers d'une personne atteinte d'hypercholestérolémie génétique, qui mange souvent de la cuisine africaine.
+Pour chaque nutriment, donne une valeur et une justification courte (une phrase) :
+- calories (kcal) ; protéines, glucides, sucres, lipides, acides gras saturés (ags), fibres et sel, en grammes par jour.
+- Sucres, AGS et sel sont des plafonds à ne pas dépasser ; protéines et fibres des cibles à atteindre ; calories, glucides et lipides des valeurs autour desquelles rester à ±10 %.
+Pars de la formule de référence fournie (Mifflin-St Jeor × activité) pour les calories, puis ajuste-la selon l'Objectif de poids et les Objectifs personnels. Si tu t'en écartes de plus de 20 %, explique pourquoi.
+Les Règles du médecin priment sur tes repères généraux.
+Réponds uniquement avec le JSON demandé.`;
+
+function decrireDemandeEstimation(demande: DemandeEstimationObjectifs): string {
+  const { profil, poidsKg, age, objectifsPersonnels, objectifDePoids, caloriesGardeFou, reglesDuMedecin } = demande;
+  return [
+    `Profil : ${profil.sexe}, ${age} ans, ${profil.taille_cm} cm, ${poidsKg} kg, ${libelleDuNiveauDActivite(profil.niveau_activite)}.`,
+    `Formule de référence : ${caloriesGardeFou} kcal par jour.`,
+    `Objectif de poids : ${
+      objectifDePoids ? `${objectifDePoids.variationKg > 0 ? "+" : ""}${objectifDePoids.variationKg} kg d'ici le ${objectifDePoids.echeance}` : "aucun"
+    }.`,
+    `Objectifs personnels : ${objectifsPersonnels || "aucun"}`,
+    `Règles du médecin (elles priment) :\n${decrireRegles(reglesDuMedecin)}`,
+  ].join("\n");
+}
+
+/** Appelle Gemini avec une sortie JSON à schéma imposé et renvoie le JSON brut (à valider par le noyau). */
+async function appelerGemini(cle: string, modele: string, consignes: string, demande: string, schema: unknown) {
+  const reponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modele}:generateContent`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-goog-api-key": cle },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: consignes }] },
+      contents: [{ role: "user", parts: [{ text: demande }] }],
+      generationConfig: { responseMimeType: "application/json", responseJsonSchema: schema },
+    }),
+  });
+  if (!reponse.ok) {
+    console.error("Gemini :", reponse.status, await reponse.text());
+    throw new Error(`Gemini a répondu ${reponse.status}`);
+  }
+
+  // Les parties « thought » (raisonnement du modèle) ne font pas partie de la réponse JSON.
+  const corps = await reponse.json();
+  const texte = (corps?.candidates?.[0]?.content?.parts ?? [])
+    .filter((p: { thought?: boolean }) => !p.thought)
+    .map((p: { text?: string }) => p.text ?? "")
+    .join("");
+  return JSON.parse(texte) as unknown;
+}
+
 function iaGemini(cle: string, modele: string): IA {
   return {
     async analyserRepas({ description, typeDeRepas, objectifsRestants, reglesDuMedecin }) {
@@ -112,27 +206,12 @@ function iaGemini(cle: string, modele: string): IA {
         `Objectifs restants avant ce repas :\n${decrireObjectifsRestants(objectifsRestants)}`,
         `Règles du médecin (elles priment) :\n${decrireRegles(reglesDuMedecin)}`,
       ].join("\n");
-      const reponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modele}:generateContent`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": cle },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: CONSIGNES_ANALYSE }] },
-          contents: [{ role: "user", parts: [{ text: demande }] }],
-          generationConfig: { responseMimeType: "application/json", responseJsonSchema: SCHEMA_ANALYSE },
-        }),
-      });
-      if (!reponse.ok) {
-        console.error("Gemini :", reponse.status, await reponse.text());
-        throw new Error(`Gemini a répondu ${reponse.status}`);
-      }
+      return lireAnalyseRepas(await appelerGemini(cle, modele, CONSIGNES_ANALYSE, demande, SCHEMA_ANALYSE));
+    },
 
-      // Les parties « thought » (raisonnement du modèle) ne font pas partie de la réponse JSON.
-      const corps = await reponse.json();
-      const texte = (corps?.candidates?.[0]?.content?.parts ?? [])
-        .filter((p: { thought?: boolean }) => !p.thought)
-        .map((p: { text?: string }) => p.text ?? "")
-        .join("");
-      return lireAnalyseRepas(JSON.parse(texte));
+    async estimerObjectifs(demande) {
+      const brut = await appelerGemini(cle, modele, CONSIGNES_ESTIMATION, decrireDemandeEstimation(demande), SCHEMA_ESTIMATION);
+      return lireEstimationObjectifs(brut);
     },
   };
 }

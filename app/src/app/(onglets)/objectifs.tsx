@@ -1,17 +1,31 @@
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { StyleSheet, TextInput, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { Bouton } from "@/components/bouton";
+import { Champ } from "@/components/champ";
 import { Ecran } from "@/components/ecran";
+import { SectionPesees } from "@/components/section-pesees";
+import { SectionProfil } from "@/components/section-profil";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { chargerObjectifs, enregistrerObjectifs } from "@/donnees/objectifs";
-import { useTheme } from "@/hooks/use-theme";
+import {
+  chargerProfil,
+  datesDeModification,
+  estimerObjectifs,
+  listerPesees,
+  type Pesee,
+  type Profil,
+  type ResultatEstimation,
+} from "@/donnees/profil";
+import { lireNombre, versTexte } from "@/lib/saisie";
 import {
   NUTRIMENTS,
+  SEUIL_ECART_GARDE_FOU,
   TOLERANCE_PLAGE,
   libelleDuNutriment,
+  reestimationAProposer,
   sensDuNutriment,
   uniteDuNutriment,
   type Nutriment,
@@ -27,52 +41,77 @@ const AIDE_SENS: Record<Sens, string> = {
   plage: `à ±${TOLERANCE_PLAGE} %`,
 };
 
-function versSaisie(objectifs: ObjectifsJournaliers): Saisie {
-  return Object.fromEntries(NUTRIMENTS.map((n) => [n, objectifs[n]?.toString() ?? ""])) as Saisie;
-}
+const versSaisie = (o: ObjectifsJournaliers): Saisie =>
+  Object.fromEntries(NUTRIMENTS.map((n) => [n, versTexte(o[n])])) as Saisie;
 
-/** Champ vide : pas d'Objectif. Virgule acceptée. Renvoie undefined si une valeur est invalide. */
+/** Champ vide : pas d'Objectif. Renvoie undefined si une valeur est invalide. */
 function depuisSaisie(saisie: Saisie): ObjectifsJournaliers | undefined {
   const objectifs = {} as ObjectifsJournaliers;
   for (const n of NUTRIMENTS) {
-    const texte = saisie[n].trim().replace(",", ".");
-    if (texte === "") {
-      objectifs[n] = null;
-      continue;
-    }
-    const valeur = Number(texte);
-    if (!Number.isFinite(valeur) || valeur <= 0) return undefined;
+    const valeur = lireNombre(saisie[n]);
+    if (valeur === undefined || (valeur !== null && valeur <= 0)) return undefined;
     objectifs[n] = valeur;
   }
   return objectifs;
 }
 
-export default function Objectifs() {
-  const theme = useTheme();
-  const [saisie, setSaisie] = useState<Saisie | null>(null);
+type Etat = {
+  profil: Profil;
+  pesees: Pesee[];
+  /** Les Objectifs enregistrés, affichés à côté d'une proposition. */
+  actuels: Saisie;
+  /** Ce qui sera appliqué : les Objectifs actuels, ou la proposition de l'IA modifiée à la main. */
+  saisie: Saisie;
+  aReestimer: boolean;
+  sansObjectifs: boolean;
+};
+
+export default function ObjectifsEtProfil() {
+  const [etat, setEtat] = useState<Etat | null>(null);
+  const [proposition, setProposition] = useState<ResultatEstimation | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [estimationEnCours, setEstimationEnCours] = useState(false);
   const [envoi, setEnvoi] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      chargerObjectifs().then(
-        (o) => setSaisie(versSaisie(o)),
-        () => setMessage("Impossible de charger les Objectifs."),
-      );
-    }, []),
-  );
+  // Recharger écarte toute proposition ouverte : on n'applique jamais autre chose que ce qui est affiché.
+  const charger = useCallback(() => {
+    Promise.all([chargerProfil(), listerPesees(), chargerObjectifs(), datesDeModification()]).then(
+      ([profil, pesees, objectifs, dates]) => {
+        setProposition(null);
+        setEtat({
+          profil,
+          pesees,
+          actuels: versSaisie(objectifs),
+          saisie: versSaisie(objectifs),
+          aReestimer: reestimationAProposer(dates.objectifs, dates.sources),
+          sansObjectifs: dates.objectifs === null,
+        });
+      },
+      () => setMessage("Impossible de charger tes données. Vérifie ta connexion."),
+    );
+  }, []);
+  useFocusEffect(charger);
 
-  async function enregistrer() {
-    if (!saisie) return;
-    const objectifs = depuisSaisie(saisie);
-    if (!objectifs) {
-      setMessage("Chaque Objectif doit être un nombre positif, ou rester vide.");
-      return;
-    }
+  async function estimer() {
+    setEstimationEnCours(true);
+    setMessage(null);
+    const resultat = await estimerObjectifs();
+    setEstimationEnCours(false);
+    if ("erreur" in resultat) return setMessage(resultat.erreur);
+    setProposition(resultat);
+    const proposee = Object.fromEntries(NUTRIMENTS.map((n) => [n, String(resultat.estimation[n].valeur)])) as Saisie;
+    setEtat((e) => e && { ...e, saisie: proposee });
+  }
+
+  async function appliquer() {
+    if (!etat) return;
+    const objectifs = depuisSaisie(etat.saisie);
+    if (!objectifs) return setMessage("Chaque Objectif doit être un nombre positif, ou rester vide.");
     setEnvoi(true);
     try {
       await enregistrerObjectifs(objectifs);
-      setMessage("Objectifs enregistrés.");
+      setMessage("Objectifs appliqués.");
+      charger();
     } catch {
       setMessage("Enregistrement impossible. Vérifie ta connexion.");
     } finally {
@@ -80,41 +119,90 @@ export default function Objectifs() {
     }
   }
 
+  if (!etat) {
+    return (
+      <Ecran titre="Objectifs & Profil">
+        {message && <ThemedText themeColor="textSecondary">{message}</ThemedText>}
+      </Ecran>
+    );
+  }
+
+  const gardeFou = proposition?.garde_fou;
+
   return (
-    <Ecran titre="Objectifs journaliers">
-      <ThemedText themeColor="textSecondary">
-        Laisse un champ vide pour ne pas suivre ce nutriment.
-      </ThemedText>
-      {saisie &&
-        NUTRIMENTS.map((n) => (
-          <View key={n} style={styles.ligne}>
+    <Ecran titre="Objectifs & Profil">
+      <SectionProfil profil={etat.profil} onEnregistre={charger} />
+      <SectionPesees pesees={etat.pesees} onChange={charger} />
+
+      <ThemedText type="smallBold">Objectifs journaliers</ThemedText>
+      {etat.sansObjectifs && !proposition && (
+        <ThemedText themeColor="textSecondary">
+          Complète ton Profil et ajoute une Pesée, puis demande une estimation à l'IA.
+        </ThemedText>
+      )}
+      {etat.aReestimer && !proposition && (
+        <ThemedText themeColor="textSecondary">
+          Ton Profil, tes Objectifs personnels ou les Règles du médecin ont changé depuis tes Objectifs : demande une
+          nouvelle estimation.
+        </ThemedText>
+      )}
+      <Bouton
+        libelle={etat.sansObjectifs ? "Estimer mes Objectifs avec l'IA" : "Réestimer avec l'IA"}
+        variante="secondaire"
+        onPress={estimer}
+        enCours={estimationEnCours}
+      />
+      {gardeFou && (
+        <ThemedText type="small" themeColor="textSecondary">
+          Repère de la formule : {gardeFou.calories} kcal. Écart de la proposition : {gardeFou.ecart_pourcentage} %
+          {gardeFou.alerte && ` — plus de ${SEUIL_ECART_GARDE_FOU} %, vérifie la justification avant d'appliquer`}.
+        </ThemedText>
+      )}
+
+      {NUTRIMENTS.map((n) => (
+        <View key={n} style={styles.objectif}>
+          <View style={styles.ligne}>
             <View style={styles.libelle}>
               <ThemedText>{libelleDuNutriment(n)}</ThemedText>
               <ThemedText type="small" themeColor="textSecondary">
                 {uniteDuNutriment(n)}, {AIDE_SENS[sensDuNutriment(n)]}
               </ThemedText>
             </View>
-            <TextInput
-              style={[styles.champ, { color: theme.text, backgroundColor: theme.backgroundElement }]}
+            <Champ
+              style={styles.valeur}
               keyboardType="decimal-pad"
               placeholder="—"
-              placeholderTextColor={theme.textSecondary}
-              value={saisie[n]}
+              value={etat.saisie[n]}
               onChangeText={(texte) => {
-                setSaisie({ ...saisie, [n]: texte });
+                setEtat({ ...etat, saisie: { ...etat.saisie, [n]: texte } });
                 setMessage(null);
               }}
             />
           </View>
-        ))}
+          {proposition && (
+            <ThemedText type="small" themeColor="textSecondary">
+              Actuel : {etat.actuels[n] || "—"} · {proposition.estimation[n].justification}
+            </ThemedText>
+          )}
+        </View>
+      ))}
+
       {message && <ThemedText themeColor="textSecondary">{message}</ThemedText>}
-      <Bouton libelle="Enregistrer" onPress={enregistrer} enCours={envoi} desactive={!saisie} />
+      <Bouton libelle={proposition ? "Appliquer la proposition" : "Appliquer"} onPress={appliquer} enCours={envoi} />
+      {proposition && (
+        <Bouton
+          libelle="Écarter la proposition"
+          variante="secondaire"
+          onPress={charger}
+        />
+      )}
     </Ecran>
   );
 }
 
 const styles = StyleSheet.create({
+  objectif: { gap: Spacing.one },
   ligne: { flexDirection: "row", alignItems: "center", gap: Spacing.three },
   libelle: { flex: 1 },
-  champ: { width: 110, borderRadius: 12, padding: Spacing.two, fontSize: 16, textAlign: "right" },
+  valeur: { width: 110, padding: Spacing.two, textAlign: "right" },
 });

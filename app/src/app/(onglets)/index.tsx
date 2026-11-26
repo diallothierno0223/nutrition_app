@@ -4,12 +4,14 @@ import { Pressable, StyleSheet } from "react-native";
 
 import { useSession } from "@/auth/session";
 import { Bouton } from "@/components/bouton";
+import { CourbeDePoids } from "@/components/courbe-de-poids";
 import { Ecran } from "@/components/ecran";
 import { ThemedText } from "@/components/themed-text";
 import { Jauges } from "@/components/jauges";
 import { formaterValeur } from "@/components/valeurs-nutritionnelles";
 import { Spacing } from "@/constants/theme";
 import { chargerObjectifs, totauxDuJour } from "@/donnees/objectifs";
+import { listerPesees, type Pesee } from "@/donnees/profil";
 import { fuseauDuTelephone, repasDeLaJournee, type RepasDetaille } from "@/donnees/repas";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
@@ -21,7 +23,12 @@ import {
   type ValeursNutritionnelles,
 } from "@noyau";
 
-type DonneesDuJour = { repas: RepasDetaille[]; totaux: ValeursNutritionnelles; objectifs: ObjectifsJournaliers };
+type DonneesDuJour = {
+  repas: RepasDetaille[];
+  totaux: ValeursNutritionnelles;
+  objectifs: ObjectifsJournaliers;
+  pesees: Pesee[];
+};
 
 export default function Dashboard() {
   const { session } = useSession();
@@ -33,9 +40,9 @@ export default function Dashboard() {
   useFocusEffect(
     useCallback(() => {
       const aujourdhui = journeeDe(new Date(), fuseauDuTelephone());
-      Promise.all([repasDeLaJournee(aujourdhui), totauxDuJour(aujourdhui), chargerObjectifs()]).then(
-        ([repas, totaux, objectifs]) => {
-          setDonnees({ repas, totaux, objectifs });
+      Promise.all([repasDeLaJournee(aujourdhui), totauxDuJour(aujourdhui), chargerObjectifs(), listerPesees(14)]).then(
+        ([repas, totaux, objectifs, pesees]) => {
+          setDonnees({ repas, totaux, objectifs, pesees });
           setErreur(false);
         },
         () => setErreur(true),
@@ -50,6 +57,9 @@ export default function Dashboard() {
       {erreur && <ThemedText themeColor="textSecondary">La base ne répond pas.</ThemedText>}
 
       {donnees && <Jauges totaux={donnees.totaux} objectifs={donnees.objectifs} />}
+
+      <ThemedText type="smallBold">Poids</ThemedText>
+      {donnees && <CourbeDePoids pesees={donnees.pesees} />}
 
       <ThemedText type="smallBold">Repas du jour</ThemedText>
       {journal?.length === 0 && <ThemedText themeColor="textSecondary">Aucun Repas enregistré aujourd'hui.</ThemedText>}
