@@ -6,24 +6,36 @@ import { useSession } from "@/auth/session";
 import { Bouton } from "@/components/bouton";
 import { Ecran } from "@/components/ecran";
 import { ThemedText } from "@/components/themed-text";
-import { formaterValeur, ValeursNutritionnelles } from "@/components/valeurs-nutritionnelles";
+import { Jauges } from "@/components/jauges";
+import { formaterValeur } from "@/components/valeurs-nutritionnelles";
 import { Spacing } from "@/constants/theme";
+import { chargerObjectifs, totauxDuJour } from "@/donnees/objectifs";
 import { fuseauDuTelephone, repasDeLaJournee, type RepasDetaille } from "@/donnees/repas";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
-import { journeeDe, libelleDuTypeDeRepas, totauxDuRepas } from "@noyau";
+import {
+  journeeDe,
+  libelleDuTypeDeRepas,
+  totauxDuRepas,
+  type ObjectifsJournaliers,
+  type ValeursNutritionnelles,
+} from "@noyau";
+
+type DonneesDuJour = { repas: RepasDetaille[]; totaux: ValeursNutritionnelles; objectifs: ObjectifsJournaliers };
 
 export default function Dashboard() {
   const { session } = useSession();
   const theme = useTheme();
-  const [journal, setJournal] = useState<RepasDetaille[] | null>(null);
+  const [donnees, setDonnees] = useState<DonneesDuJour | null>(null);
   const [erreur, setErreur] = useState(false);
 
+  // Rechargé à chaque retour sur l'onglet : les jauges suivent les Repas enregistrés entre-temps.
   useFocusEffect(
     useCallback(() => {
-      repasDeLaJournee(journeeDe(new Date(), fuseauDuTelephone())).then(
-        (repas) => {
-          setJournal(repas);
+      const aujourdhui = journeeDe(new Date(), fuseauDuTelephone());
+      Promise.all([repasDeLaJournee(aujourdhui), totauxDuJour(aujourdhui), chargerObjectifs()]).then(
+        ([repas, totaux, objectifs]) => {
+          setDonnees({ repas, totaux, objectifs });
           setErreur(false);
         },
         () => setErreur(true),
@@ -31,15 +43,13 @@ export default function Dashboard() {
     }, []),
   );
 
-  // Seuls les Repas analysés comptent ; les Repas en attente sont listés mais pas comptés.
-  const analyses = journal?.filter((r) => r.statut === "analyse") ?? [];
-  const totauxDuJour = totauxDuRepas(analyses.flatMap((r) => r.constituants));
+  const journal = donnees?.repas;
 
   return (
     <Ecran titre="Aujourd'hui">
       {erreur && <ThemedText themeColor="textSecondary">La base ne répond pas.</ThemedText>}
 
-      <ValeursNutritionnelles valeurs={totauxDuJour} />
+      {donnees && <Jauges totaux={donnees.totaux} objectifs={donnees.objectifs} />}
 
       <ThemedText type="smallBold">Repas du jour</ThemedText>
       {journal?.length === 0 && <ThemedText themeColor="textSecondary">Aucun Repas enregistré aujourd'hui.</ThemedText>}

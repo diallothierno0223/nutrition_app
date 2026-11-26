@@ -1,7 +1,49 @@
 // Analyse un Repas par l'IA et enregistre directement ses Constituants et son Commentaire (ADR 0003).
 // Entrée : POST { repas_id }. Toutes les lectures et écritures passent par la session de l'appelant (RLS).
-import { createClient } from "npm:@supabase/supabase-js@2.119.2";
+import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.119.2";
+import {
+  NUTRIMENTS,
+  objectifsRestants,
+  retirerValeurs,
+  totauxDuRepas,
+  type ObjectifsJournaliers,
+  type ValeursNutritionnelles,
+} from "../../../noyau/index.ts";
 import { iaDepuisEnvironnement } from "../_shared/ia.ts";
+
+const COLONNES_NUTRIMENTS = NUTRIMENTS.join(", ");
+const RIEN = Object.fromEntries(NUTRIMENTS.map((n) => [n, 0])) as ValeursNutritionnelles;
+
+type RepasAAnalyser = { id: string; journee: string; statut: string };
+
+/**
+ * Ce qui reste des Objectifs de la Journée sans compter ce Repas : les totaux du jour (vue SQL, Repas analysés
+ * seulement) moins ce Repas s'il est déjà analysé, pour qu'une relance ne se compte pas elle-même.
+ */
+async function objectifsRestantsSansCeRepas(
+  supabase: SupabaseClient,
+  repas: RepasAAnalyser,
+): Promise<ObjectifsJournaliers | null> {
+  const objectifs = await supabase.from("objectifs_journaliers").select(COLONNES_NUTRIMENTS).maybeSingle();
+  if (objectifs.error) throw new Error(objectifs.error.message);
+  if (!objectifs.data) return null;
+
+  const totaux = await supabase
+    .from("totaux_du_jour")
+    .select(COLONNES_NUTRIMENTS)
+    .eq("journee", repas.journee)
+    .maybeSingle();
+  if (totaux.error) throw new Error(totaux.error.message);
+  let consommes = (totaux.data as ValeursNutritionnelles | null) ?? RIEN;
+
+  if (repas.statut === "analyse") {
+    const ceRepas = await supabase.from("constituants").select(COLONNES_NUTRIMENTS).eq("repas_id", repas.id);
+    if (ceRepas.error) throw new Error(ceRepas.error.message);
+    consommes = retirerValeurs(consommes, totauxDuRepas(ceRepas.data as ValeursNutritionnelles[]));
+  }
+
+  return objectifsRestants(objectifs.data as ObjectifsJournaliers, consommes);
+}
 
 Deno.serve(async (requete) => {
   if (requete.method !== "POST") return Response.json({ erreur: "POST attendu" }, { status: 405 });
@@ -21,7 +63,7 @@ Deno.serve(async (requete) => {
 
   const { data: repas } = await supabase
     .from("repas")
-    .select("id, description, type_repas")
+    .select("id, description, type_repas, journee, statut")
     .eq("id", repasId)
     .maybeSingle();
   if (!repas) return Response.json({ erreur: "Repas introuvable" }, { status: 404 });
@@ -30,6 +72,7 @@ Deno.serve(async (requete) => {
     const analyse = await iaDepuisEnvironnement().analyserRepas({
       description: repas.description,
       typeDeRepas: repas.type_repas,
+      objectifsRestants: await objectifsRestantsSansCeRepas(supabase, repas),
     });
     const { error } = await supabase.rpc("enregistrer_analyse", {
       p_repas_id: repas.id,

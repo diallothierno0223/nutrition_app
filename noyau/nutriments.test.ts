@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { NUTRIMENTS, libelleDuNutriment, sensDuNutriment } from "./index.ts";
+import { NUTRIMENTS, libelleDuNutriment, sensDuNutriment, uniteDuNutriment } from "./index.ts";
+
+describe("unités des nutriments", () => {
+  it("compte les calories en kcal et le reste en grammes", () => {
+    expect(NUTRIMENTS.map(uniteDuNutriment)).toEqual(["kcal", "g", "g", "g", "g", "g", "g"]);
+  });
+});
 
 describe("libellés des nutriments", () => {
   it("donne le libellé affiché de chaque nutriment", () => {

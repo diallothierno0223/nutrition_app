@@ -24,6 +24,15 @@ export const Colors = {
 
 export type ThemeColor = keyof typeof Colors.light & keyof typeof Colors.dark;
 
+/** Couleurs des jauges selon leur état (identiques en clair et en sombre). */
+export const CouleursJauge = {
+  normal: "#3c87f7",
+  approche: "#E8A33D",
+  depasse: "#D64545",
+  en_dessous: "#8E6CEF",
+  sans_objectif: "#9AA0A6",
+} as const;
+
 export const Fonts = Platform.select({
   ios: {
     /** iOS `UIFontDescriptorSystemDesignDefault` */

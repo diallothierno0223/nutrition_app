@@ -38,6 +38,11 @@ const LIBELLES: Record<Nutriment, string> = {
   sel: "Sel",
 };
 
+/** Calories en kcal, tous les autres nutriments en grammes. */
+export function uniteDuNutriment(nutriment: Nutriment): "kcal" | "g" {
+  return nutriment === "calories" ? "kcal" : "g";
+}
+
 /** Le libellé affiché du nutriment (jauges, notifications). */
 export function libelleDuNutriment(nutriment: Nutriment): string {
   return LIBELLES[nutriment];

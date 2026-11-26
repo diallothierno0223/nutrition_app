@@ -2,10 +2,13 @@ import { StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
-import { NUTRIMENTS, libelleDuNutriment, type Nutriment, type ValeursNutritionnelles } from "@noyau";
+import { NUTRIMENTS, libelleDuNutriment, uniteDuNutriment, type Nutriment, type ValeursNutritionnelles } from "@noyau";
 
+/** Les calories à l'unité près, les grammes au dixième. */
 export function formaterValeur(nutriment: Nutriment, valeur: number): string {
-  return nutriment === "calories" ? `${Math.round(valeur)} kcal` : `${Math.round(valeur * 10) / 10} g`;
+  const unite = uniteDuNutriment(nutriment);
+  const arrondie = unite === "kcal" ? Math.round(valeur) : Math.round(valeur * 10) / 10;
+  return `${arrondie} ${unite}`;
 }
 
 /** Les 7 nutriments d'un Repas ou d'une Journée, en grille compacte. */

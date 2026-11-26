@@ -16,6 +16,11 @@ export type Constituant = ValeursNutritionnelles & {
 
 const arrondi = (n: number) => Math.round(n * 100) / 100;
 
+/** Retire une partie (un Repas) d'un total (une Journée), nutriment par nutriment. */
+export function retirerValeurs(total: ValeursNutritionnelles, part: ValeursNutritionnelles): ValeursNutritionnelles {
+  return Object.fromEntries(NUTRIMENTS.map((n) => [n, arrondi(total[n] - part[n])])) as ValeursNutritionnelles;
+}
+
 /** Les totaux d'un Repas : la somme des valeurs de ses Constituants. */
 export function totauxDuRepas(constituants: readonly ValeursNutritionnelles[]): ValeursNutritionnelles {
   const totaux = Object.fromEntries(NUTRIMENTS.map((n) => [n, 0])) as ValeursNutritionnelles;

@@ -4,16 +4,33 @@
 // Toute réponse passe par la lecture défensive du noyau métier avant d'être utilisée.
 import {
   NUTRIMENTS,
+  libelleDuNutriment,
   libelleDuTypeDeRepas,
+  uniteDuNutriment,
   lireAnalyseRepas,
   type AnalyseRepas,
+  type ObjectifsJournaliers,
   type TypeDeRepas,
 } from "../../../noyau/index.ts";
 
 export type DemandeAnalyseRepas = {
   description: string;
   typeDeRepas: TypeDeRepas;
+  /** Ce qui reste dans les Objectifs du jour avant ce Repas ; null si aucun Objectif n'est défini. */
+  objectifsRestants: ObjectifsJournaliers | null;
 };
+
+/** « Calories restantes : 1985 kcal », une ligne par nutriment qui a un Objectif. */
+export function decrireObjectifsRestants(restants: ObjectifsJournaliers | null): string {
+  if (!restants) return "Aucun Objectif journalier défini.";
+  return NUTRIMENTS.flatMap((n) => {
+    const reste = restants[n];
+    if (reste === null) return [];
+    // Seul « Calories » est féminin pluriel parmi les libellés.
+    const accord = n === "calories" ? "es" : "";
+    return [`${libelleDuNutriment(n)} restant${accord} : ${reste} ${uniteDuNutriment(n)}`];
+  }).join("\n");
+}
 
 export interface IA {
   analyserRepas(demande: DemandeAnalyseRepas): Promise<AnalyseRepas>;
@@ -31,7 +48,8 @@ export function iaDepuisEnvironnement(): IA {
 }
 
 const iaFactice: IA = {
-  async analyserRepas({ description }) {
+  async analyserRepas({ description, objectifsRestants }) {
+    const restants = objectifsRestants ? `\n${decrireObjectifsRestants(objectifsRestants)}` : "";
     return lireAnalyseRepas({
       constituants: [
         { nom: "Riz blanc cuit", quantite: 150, unite: "g", equivalent_cuisine: "1 bol",
@@ -39,7 +57,7 @@ const iaFactice: IA = {
         { nom: "Sauce arachide", quantite: 200, unite: "ml", equivalent_cuisine: "1 louche",
           calories: 320, proteines: 12, glucides: 10, lipides: 26, ags: 6.5, fibres: 3, sel: 1.8 },
       ],
-      commentaire: `Analyse factice de « ${description} ».\nPoint fort : des glucides pour l'énergie.\nPoint faible : sauce riche en AGS.\nAmélioration : moins de pâte d'arachide.`,
+      commentaire: `Analyse factice de « ${description} ».\nPoint fort : des glucides pour l'énergie.\nPoint faible : sauce riche en AGS.\nAmélioration : moins de pâte d'arachide.${restants}`,
     });
   },
 };
@@ -71,22 +89,23 @@ const CONSIGNES_ANALYSE = `Tu es nutritionniste. Tu aides une personne atteinte 
 - calories (kcal), protéines, glucides, lipides, acides gras saturés (ags), fibres et sel, tous en grammes, pour la quantité estimée.
 Compte les huiles et matières grasses de cuisson comme des Constituants à part quand elles sont probables.
 Rédige un Commentaire du repas en français, 10 lignes au maximum : un point fort, un point faible, une amélioration possible, en pensant d'abord aux acides gras saturés et aux fibres.
+Tiens compte de ce qui restait dans les Objectifs du jour avant ce repas (une valeur négative signifie que l'Objectif était déjà dépassé), et conseille la suite de la journée.
 Réponds uniquement avec le JSON demandé.`;
 
 function iaGemini(cle: string, modele: string): IA {
   return {
-    async analyserRepas({ description, typeDeRepas }) {
+    async analyserRepas({ description, typeDeRepas, objectifsRestants }) {
+      const demande = [
+        `Type de repas : ${libelleDuTypeDeRepas(typeDeRepas)}`,
+        `Description : ${description}`,
+        `Objectifs restants avant ce repas :\n${decrireObjectifsRestants(objectifsRestants)}`,
+      ].join("\n");
       const reponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modele}:generateContent`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": cle },
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: CONSIGNES_ANALYSE }] },
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: `Type de repas : ${libelleDuTypeDeRepas(typeDeRepas)}\nDescription : ${description}` }],
-            },
-          ],
+          contents: [{ role: "user", parts: [{ text: demande }] }],
           generationConfig: { responseMimeType: "application/json", responseJsonSchema: SCHEMA_ANALYSE },
         }),
       });

@@ -2,26 +2,8 @@
 // chaque analyse renvoie un riz blanc et une sauce arachide, et un Commentaire qui reprend la description.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { creerUtilisateurConnecte, statutLocal, type UtilisateurDeTest } from "./supabase-local.ts";
-
-async function creerRepas(client: SupabaseClient, description: string) {
-  const { data, error } = await client
-    .from("repas")
-    .insert({ description, mange_le: "2026-11-26T12:30:00Z", journee: "2026-11-26", type_repas: "dejeuner" })
-    .select("id")
-    .single();
-  if (error) throw error;
-  return data.id as string;
-}
-
-async function analyser(utilisateur: UtilisateurDeTest, repasId: string) {
-  const { data } = await utilisateur.client.auth.getSession();
-  return fetch(`${statutLocal().API_URL}/functions/v1/analyser-repas`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${data.session?.access_token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ repas_id: repasId }),
-  });
-}
+import { creerUtilisateurConnecte, type UtilisateurDeTest } from "./supabase-local.ts";
+import { analyser, creerRepas } from "./outils.ts";
 
 async function constituantsDe(client: SupabaseClient, repasId: string) {
   const { data, error } = await client
