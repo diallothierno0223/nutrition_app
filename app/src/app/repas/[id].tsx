@@ -1,29 +1,44 @@
 import { Image } from "expo-image";
-import { Stack, useLocalSearchParams } from "expo-router";
+import { Stack, router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { Alert, StyleSheet } from "react-native";
 
+import { AjoutConstituant } from "@/components/ajout-constituant";
 import { Bouton } from "@/components/bouton";
+import { CarteConstituant } from "@/components/carte-constituant";
+import { Champ } from "@/components/champ";
 import { Ecran } from "@/components/ecran";
+import { MomentDuRepas } from "@/components/moment-du-repas";
 import { ThemedText } from "@/components/themed-text";
 import { ValeursNutritionnelles } from "@/components/valeurs-nutritionnelles";
-import { Spacing } from "@/constants/theme";
 import { adresseDePhoto } from "@/donnees/photos";
-import { analyserRepas, chargerRepas, type RepasDetaille } from "@/donnees/repas";
-import { useTheme } from "@/hooks/use-theme";
+import { chargerRepas, relancerAvecPrecision, supprimerRepas, type RepasDetaille } from "@/donnees/repas";
 import { libelleDuTypeDeRepas, totauxDuRepas } from "@noyau";
 
 export default function DetailRepas() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const theme = useTheme();
   const [repas, setRepas] = useState<RepasDetaille | null | undefined>(undefined);
+  const [precision, setPrecision] = useState("");
   const [relance, setRelance] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
   const [adressePhoto, setAdressePhoto] = useState<string | null>(null);
 
-  const charger = useCallback(() => chargerRepas(id).then(setRepas, () => setRepas(null)), [id]);
+  // Un échec de rechargement (réseau) garde le Repas affiché au lieu de le dire introuvable.
+  const charger = useCallback(
+    () =>
+      chargerRepas(id).then(setRepas, () => {
+        setRepas((actuel) => actuel ?? null);
+        setMessage("Impossible de recharger le Repas. Vérifie ta connexion.");
+      }),
+    [id],
+  );
   useEffect(() => {
     charger();
   }, [charger]);
+
+  // La précision déjà enregistrée sert de point de départ ; on la reprend quand le Repas change.
+  const precisionEnregistree = repas?.precision ?? "";
+  useEffect(() => setPrecision(precisionEnregistree), [precisionEnregistree]);
 
   const photoChemin = repas?.photo_chemin;
   useEffect(() => {
@@ -33,12 +48,31 @@ export default function DetailRepas() {
 
   async function relancer() {
     setRelance(true);
+    setMessage(null);
     try {
-      await analyserRepas(id);
+      const { reussie } = await relancerAvecPrecision(id, precision);
+      if (!reussie) setMessage("L'analyse a échoué, réessaie plus tard.");
       await charger();
+    } catch {
+      setMessage("Relance impossible. Vérifie ta connexion.");
     } finally {
       setRelance(false);
     }
+  }
+
+  function confirmerSuppression(aSupprimer: RepasDetaille) {
+    Alert.alert("Supprimer ce Repas ?", "Il sera retiré de tes jauges et de ton historique.", [
+      { text: "Annuler", style: "cancel" },
+      {
+        text: "Supprimer",
+        style: "destructive",
+        onPress: () =>
+          supprimerRepas(aSupprimer).then(
+            () => router.back(),
+            () => setMessage("Suppression impossible. Vérifie ta connexion."),
+          ),
+      },
+    ]);
   }
 
   if (repas === undefined) return <Ecran />;
@@ -59,27 +93,19 @@ export default function DetailRepas() {
       {repas.description !== "" && <ThemedText>{repas.description}</ThemedText>}
 
       {repas.statut === "en_attente" ? (
-        <>
-          <ThemedText themeColor="textSecondary">
-            {repas.erreur_analyse ? "L'analyse a échoué." : "Analyse en attente."} Ce Repas n'est pas compté dans les jauges.
-          </ThemedText>
-          <Bouton libelle="Relancer l'analyse" onPress={relancer} enCours={relance} />
-        </>
+        <ThemedText themeColor="textSecondary">
+          {repas.erreur_analyse ? "L'analyse a échoué." : "Analyse en attente."} Ce Repas n'est pas compté dans les jauges.
+        </ThemedText>
       ) : (
         <>
           <ThemedText type="smallBold">Total</ThemedText>
           <ValeursNutritionnelles valeurs={totauxDuRepas(repas.constituants)} />
 
           <ThemedText type="smallBold">Constituants</ThemedText>
-          {repas.constituants.map((c, i) => (
-            <View key={i} style={[styles.carte, { backgroundColor: theme.backgroundElement }]}>
-              <ThemedText>{c.nom}</ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                {c.quantite} {c.unite} · {c.equivalent_cuisine}
-              </ThemedText>
-              <ValeursNutritionnelles valeurs={c} />
-            </View>
+          {repas.constituants.map((c) => (
+            <CarteConstituant key={c.id} constituant={c} onChange={charger} />
           ))}
+          <AjoutConstituant repasId={repas.id} onChange={charger} />
 
           {repas.commentaire && (
             <>
@@ -89,11 +115,30 @@ export default function DetailRepas() {
           )}
         </>
       )}
+
+      <ThemedText type="smallBold">Précision</ThemedText>
+      <ThemedText type="small" themeColor="textSecondary">
+        Relancer l'analyse remplace les Constituants (y compris tes corrections à la main) et le Commentaire.
+      </ThemedText>
+      <Champ
+        multiline
+        placeholder="Ex. : j'ai ajouté une cuillère d'huile, la sauce était à part"
+        value={precision}
+        onChangeText={setPrecision}
+      />
+      <Bouton
+        libelle={precision.trim() ? "Relancer l'analyse avec cette précision" : "Relancer l'analyse"}
+        onPress={relancer}
+        enCours={relance}
+      />
+      {message && <ThemedText themeColor="textSecondary">{message}</ThemedText>}
+
+      <MomentDuRepas key={repas.mange_le + repas.type_repas} repas={repas} onChange={charger} />
+      <Bouton libelle="Supprimer le Repas" variante="secondaire" onPress={() => confirmerSuppression(repas)} />
     </Ecran>
   );
 }
 
 const styles = StyleSheet.create({
-  carte: { borderRadius: 12, padding: Spacing.three, gap: Spacing.two },
   photo: { width: "100%", aspectRatio: 4 / 3, borderRadius: 12 },
 });

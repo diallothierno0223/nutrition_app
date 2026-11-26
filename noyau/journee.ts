@@ -8,6 +8,8 @@ const LIBELLES_TYPES: Record<TypeDeRepas, string> = {
   diner: "Dîner",
 };
 
+export const TYPES_DE_REPAS = Object.keys(LIBELLES_TYPES) as readonly TypeDeRepas[];
+
 export function libelleDuTypeDeRepas(type: TypeDeRepas): string {
   return LIBELLES_TYPES[type];
 }

@@ -72,7 +72,7 @@ Deno.serve(async (requete) => {
 
   const { data: repas } = await supabase
     .from("repas")
-    .select("id, description, photo_chemin, type_repas, journee, statut")
+    .select("id, description, photo_chemin, precision, type_repas, journee, statut")
     .eq("id", repasId)
     .maybeSingle();
   if (!repas) return Response.json({ erreur: "Repas introuvable" }, { status: 404 });
@@ -81,6 +81,7 @@ Deno.serve(async (requete) => {
     const analyse = await iaDepuisEnvironnement().analyserRepas({
       description: repas.description,
       photo: await lirePhoto(supabase, repas.photo_chemin),
+      precision: repas.precision,
       typeDeRepas: repas.type_repas,
       objectifsRestants: await objectifsRestantsSansCeRepas(supabase, repas),
       reglesDuMedecin: await reglesActives(supabase),

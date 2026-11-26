@@ -26,6 +26,8 @@ export type DemandeAnalyseRepas = {
   /** La description saisie, ou la note qui accompagne la photo (éventuellement vide). */
   description: string;
   photo: PhotoDuRepas | null;
+  /** Une précision ajoutée après coup pour corriger l'analyse (« j'ai ajouté une cuillère d'huile »). */
+  precision: string | null;
   typeDeRepas: TypeDeRepas;
   /** Ce qui reste dans les Objectifs du jour avant ce Repas ; null si aucun Objectif n'est défini. */
   objectifsRestants: ObjectifsJournaliers | null;
@@ -78,8 +80,9 @@ export function iaDepuisEnvironnement(): IA {
 }
 
 const iaFactice: IA = {
-  async analyserRepas({ description, photo, objectifsRestants, reglesDuMedecin }) {
+  async analyserRepas({ description, photo, precision, objectifsRestants, reglesDuMedecin }) {
     const recue = photo ? `\nPhoto reçue (${photo.octets.length} octets).` : "";
+    const precisee = precision ? `\nPrécision : ${precision}` : "";
     const restants = objectifsRestants ? `\n${decrireObjectifsRestants(objectifsRestants)}` : "";
     const regles = reglesDuMedecin.length > 0 ? `\n${decrireRegles(reglesDuMedecin)}` : "";
     return lireAnalyseRepas({
@@ -89,7 +92,7 @@ const iaFactice: IA = {
         { nom: "Sauce arachide", quantite: 200, unite: "ml", equivalent_cuisine: "1 louche",
           calories: 320, proteines: 12, glucides: 10, sucres: 4, lipides: 26, ags: 6.5, fibres: 3, sel: 1.8 },
       ],
-      commentaire: `Analyse factice de « ${description} ».\nPoint fort : des glucides pour l'énergie.\nPoint faible : sauce riche en AGS.\nAmélioration : moins de pâte d'arachide.${recue}${restants}${regles}`,
+      commentaire: `Analyse factice de « ${description} ».\nPoint fort : des glucides pour l'énergie.\nPoint faible : sauce riche en AGS.\nAmélioration : moins de pâte d'arachide.${recue}${precisee}${restants}${regles}`,
     });
   },
 
@@ -221,10 +224,11 @@ async function appelerGemini(
 
 function iaGemini(cle: string, modele: string): IA {
   return {
-    async analyserRepas({ description, photo, typeDeRepas, objectifsRestants, reglesDuMedecin }) {
+    async analyserRepas({ description, photo, precision, typeDeRepas, objectifsRestants, reglesDuMedecin }) {
       const demande = [
         `Type de repas : ${libelleDuTypeDeRepas(typeDeRepas)}`,
         photo ? `Photo du repas jointe. Note : ${description || "aucune"}` : `Description : ${description}`,
+        ...(precision ? [`Précision de l'utilisateur (elle corrige la description) : ${precision}`] : []),
         `Objectifs restants avant ce repas :\n${decrireObjectifsRestants(objectifsRestants)}`,
         `Règles du médecin (elles priment) :\n${decrireRegles(reglesDuMedecin)}`,
       ].join("\n");

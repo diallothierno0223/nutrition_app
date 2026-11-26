@@ -18,6 +18,14 @@ _À éviter_ : Légende, commentaire (réservé au Commentaire du repas)
 Un aliment d'un Repas, avec sa quantité estimée et ses valeurs nutritionnelles. Les totaux d'un Repas sont la somme de ses Constituants.
 _À éviter_ : Ingrédient, aliment, composant
 
+**Équivalent en cuisine** :
+La quantité d'un Constituant exprimée avec un ustensile (« 1 louche », « 2 c. à soupe »). Corriger la quantité ou le nombre d'ustensiles recalcule les nutriments en proportion, sans nouvelle analyse.
+_À éviter_ : Mesure (réservé à la Pesée), portion
+
+**Précision** :
+Un texte ajouté après coup à un Repas pour corriger son analyse (« j'ai ajouté une cuillère d'huile »). Elle est conservée et relue à chaque relance de l'analyse, qui régénère les Constituants et le Commentaire.
+_À éviter_ : Note (réservé à la photo), correction
+
 **Plat** :
 Un modèle réutilisable de Repas (par exemple un plat de batch cooking), avec ses Constituants pour une portion. Réutiliser un Plat en copie les Constituants dans un nouveau Repas ; modifier le Plat ne change jamais les Repas déjà enregistrés.
 _À éviter_ : Recette (réservé aux suggestions du samedi), repas global, modèle
