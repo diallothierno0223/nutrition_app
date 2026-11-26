@@ -20,6 +20,7 @@ function Navigation() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Protected guard={!!session}>
         <Stack.Screen name="(onglets)" />
+        <Stack.Screen name="repas/[id]" options={{ headerShown: true, title: "Repas" }} />
       </Stack.Protected>
       <Stack.Protected guard={!session}>
         <Stack.Screen name="connexion" />

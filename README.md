@@ -46,8 +46,18 @@ npx supabase functions serve
 
 ## Backend local
 
-- `npx supabase db reset` réapplique toutes les migrations.
+- `npx supabase migration up` applique les nouvelles migrations en gardant les données. `npx supabase db reset` repart de zéro (**efface aussi ton compte**).
 - Les inscriptions publiques sont fermées : le compte unique se crée depuis Supabase Studio (http://127.0.0.1:54323, Authentication → Add user) ou, en production, depuis le tableau de bord Supabase.
+- Les Edge Functions lisent `supabase/functions/.env` (copier `supabase/functions/.env.example`).
+
+## IA
+
+Toutes les demandes à l'IA passent par le port IA des Edge Functions (`supabase/functions/_shared/ia.ts`) :
+
+- `IA_MODE=factice` : réponses prédéfinies, utilisées par les tests et pour développer sans clé.
+- `IA_MODE=gemini` : API Gemini, avec `GEMINI_API_KEY` (clé Google AI Studio) et `GEMINI_MODELE` (défaut `gemini-3.8-flash`). En production : `npx supabase secrets set IA_MODE=gemini GEMINI_API_KEY=...`.
+
+La clé n'existe que côté serveur, jamais dans l'app. Chaque réponse de l'IA est validée par le noyau métier avant d'être enregistrée.
 
 ## App mobile
 
