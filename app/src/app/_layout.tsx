@@ -24,6 +24,7 @@ function Navigation() {
         <Stack.Screen name="plat/[id]" options={{ headerShown: true, title: "Plat" }} />
         <Stack.Screen name="rendez-vous/index" options={{ headerShown: true, title: "Rendez-vous passés" }} />
         <Stack.Screen name="rendez-vous/[id]" options={{ headerShown: true, title: "Rendez-vous" }} />
+        <Stack.Screen name="courses/[id]" options={{ headerShown: true, title: "Liste de courses" }} />
       </Stack.Protected>
       <Stack.Protected guard={!session}>
         <Stack.Screen name="connexion" />

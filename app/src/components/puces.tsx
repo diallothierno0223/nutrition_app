@@ -38,3 +38,36 @@ const styles = StyleSheet.create({
   puces: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.two },
   puce: { borderRadius: 999, paddingVertical: Spacing.two, paddingHorizontal: Spacing.three },
 });
+
+/** Choix de plusieurs options (chacune s'active ou se désactive d'un appui). */
+export function PucesMultiples<T extends string>({
+  options,
+  choisies,
+  libelle,
+  onBasculer,
+}: {
+  options: readonly T[];
+  choisies: readonly T[];
+  libelle: (option: T) => string;
+  onBasculer: (option: T) => void;
+}) {
+  const theme = useTheme();
+  return (
+    <View style={styles.puces}>
+      {options.map((option) => {
+        const choisie = choisies.includes(option);
+        return (
+          <Pressable
+            key={option}
+            onPress={() => onBasculer(option)}
+            style={[styles.puce, { backgroundColor: choisie ? theme.backgroundSelected : theme.backgroundElement }]}>
+            <ThemedText type={choisie ? "smallBold" : "small"}>
+              {choisie ? "✓ " : ""}
+              {libelle(option)}
+            </ThemedText>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}

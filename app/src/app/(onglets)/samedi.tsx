@@ -75,6 +75,10 @@ export default function Samedi() {
 
       {rendezVous && (
         <>
+          <Bouton
+            libelle="Liste de courses"
+            onPress={() => router.push({ pathname: "/courses/[id]", params: { id: rendezVous.id } })}
+          />
           <ContenuRendezVous rendezVous={rendezVous} />
           <View style={styles.actions}>
             <Bouton

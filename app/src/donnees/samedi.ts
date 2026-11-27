@@ -4,7 +4,7 @@ import { NUTRIMENTS, type CategorieDeRecette, type Constituant, type ReglagesDuS
 import { fuseauDuTelephone } from "@/donnees/repas";
 import { supabase } from "@/lib/supabase";
 
-export type IngredientEnregistre = Constituant & { id: string; position: number };
+export type IngredientEnregistre = Constituant & { id: string; position: number; coche: boolean };
 
 export type RecetteEnregistree = {
   id: string;
@@ -15,6 +15,7 @@ export type RecetteEnregistree = {
   conservation: string;
   ordre_conseille: string;
   a_refaire: boolean;
+  dans_la_liste: boolean;
   ingredients: IngredientEnregistre[];
 };
 
@@ -28,9 +29,9 @@ export type RendezVous = {
 
 export type ResumeRendezVous = Pick<RendezVous, "id" | "samedi">;
 
-const COLONNES_INGREDIENT = ["id", "position", "nom", "quantite", "unite", "equivalent_cuisine", ...NUTRIMENTS].join(", ");
+const COLONNES_INGREDIENT = ["id", "position", "coche", "nom", "quantite", "unite", "equivalent_cuisine", ...NUTRIMENTS].join(", ");
 const SELECTION =
-  "id, samedi, bilan, genere_le, recettes (id, position, nom, categorie, portions, etapes, conservation, ordre_conseille, a_refaire, " +
+  "id, samedi, bilan, genere_le, recettes (id, position, nom, categorie, portions, etapes, conservation, ordre_conseille, a_refaire, dans_la_liste, " +
   `ingredients:ingredients_de_recette (${COLONNES_INGREDIENT}))`;
 
 function trier(rendezVous: RendezVous & { recettes: (RecetteEnregistree & { position: number })[] }): RendezVous {
