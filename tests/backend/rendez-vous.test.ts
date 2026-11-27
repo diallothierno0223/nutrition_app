@@ -179,7 +179,7 @@ describe("Plats de la semaine", () => {
   it("remplace les Plats de la semaine à la génération suivante, sans toucher aux Repas ni aux Plats permanents", async () => {
     const [ancien] = await platsDeLaSemaine();
     const { data: repasId } = await moi.client.rpc("enregistrer_repas_depuis_plat", {
-      p_description: ancien!.nom, p_mange_le: "2026-11-20T12:00:00Z", p_journee: "2026-11-20", p_type_repas: "dejeuner",
+      p_id: crypto.randomUUID(), p_description: ancien!.nom, p_mange_le: "2026-11-20T12:00:00Z", p_journee: "2026-11-20", p_type_repas: "dejeuner",
       p_constituants: [{ nom: "Oignon", quantite: 37.5, unite: "g", equivalent_cuisine: "", calories: 15,
         proteines: 1, glucides: 1, sucres: 0, lipides: 0, ags: 0, fibres: 0, sel: 0 }],
     });

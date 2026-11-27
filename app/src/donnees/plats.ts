@@ -1,9 +1,12 @@
 // Plats réutilisables : des modèles de Repas pour une portion. Réutiliser un Plat copie ses Constituants,
 // multipliés par le Coefficient de portion (noyau métier), dans un nouveau Repas déjà analysé : pas d'appel à l'IA.
+import { randomUUID } from "expo-crypto";
+
 import { NUTRIMENTS, appliquerCoefficient, journeeDe, typeDeRepas, type Constituant } from "@noyau";
 
-import { analyserRepas, fuseauDuTelephone, type ConstituantEnregistre } from "@/donnees/repas";
+import { fuseauDuTelephone, type ConstituantEnregistre } from "@/donnees/repas";
 import { supabase } from "@/lib/supabase";
+import { envoyer, lectureEnCache } from "@/synchro/synchro";
 
 export type Plat = { id: string; nom: string };
 export type PlatDetaille = Plat & { constituants: ConstituantEnregistre[] };
@@ -18,31 +21,37 @@ function sansIdentifiant(c: Constituant): Constituant {
 
 /** Les Plats permanents (ceux que l'utilisateur a gardés), par nom. */
 export async function listerPlats(): Promise<Plat[]> {
-  const { data, error } = await supabase.from("plats").select("id, nom").is("rendez_vous_id", null).order("nom");
-  if (error) throw error;
-  return data;
+  return lectureEnCache("plats", async () => {
+    const { data, error } = await supabase.from("plats").select("id, nom").is("rendez_vous_id", null).order("nom");
+    if (error) throw error;
+    return data;
+  });
 }
 
 /** Les Plats de la semaine : une portion de chaque Recette et petit-déjeuner du dernier Rendez-vous du samedi. */
 export async function listerPlatsDeLaSemaine(): Promise<Plat[]> {
-  const { data, error } = await supabase
-    .from("plats")
-    .select("id, nom")
-    .not("rendez_vous_id", "is", null)
-    .order("cree_le");
-  if (error) throw error;
-  return data;
+  return lectureEnCache("plats-de-la-semaine", async () => {
+    const { data, error } = await supabase
+      .from("plats")
+      .select("id, nom")
+      .not("rendez_vous_id", "is", null)
+      .order("cree_le");
+    if (error) throw error;
+    return data;
+  });
 }
 
 export async function chargerPlat(id: string): Promise<PlatDetaille | null> {
-  const { data, error } = await supabase
-    .from("plats")
-    .select(`id, nom, constituants:constituants_de_plat (${COLONNES_CONSTITUANT})`)
-    .eq("id", id)
-    .order("position", { referencedTable: "constituants_de_plat" })
-    .maybeSingle();
-  if (error) throw error;
-  return data as unknown as PlatDetaille | null;
+  return lectureEnCache(`plat:${id}`, async () => {
+    const { data, error } = await supabase
+      .from("plats")
+      .select(`id, nom, constituants:constituants_de_plat (${COLONNES_CONSTITUANT})`)
+      .eq("id", id)
+      .order("position", { referencedTable: "constituants_de_plat" })
+      .maybeSingle();
+    if (error) throw error;
+    return data as unknown as PlatDetaille | null;
+  });
 }
 
 /** Enregistre des Constituants (ceux d'un Repas, pour une portion) comme nouveau Plat ; renvoie son identifiant. */
@@ -82,6 +91,8 @@ export const libelleDuCoefficient = (coefficient: number) => `×${String(coeffic
 /**
  * Enregistre un Repas à partir du Plat, maintenant, avec le Coefficient de portion. Avec une précision, l'analyse
  * est relancée sur la base des Constituants copiés ; sinon l'IA n'est pas appelée. Renvoie l'identifiant du Repas.
+ * Le Repas passe par la file d'envoi : hors ligne, il est compté tout de suite dans les jauges locales, et la précision
+ * (qui demande l'IA) est appliquée à son envoi.
  */
 export async function reutiliserPlat(
   plat: PlatDetaille,
@@ -91,22 +102,19 @@ export async function reutiliserPlat(
 ): Promise<string> {
   const fuseau = fuseauDuTelephone();
   const description = coefficient === 1 ? plat.nom : `${plat.nom} (${libelleDuCoefficient(coefficient)})`;
-  const { data, error } = await supabase.rpc("enregistrer_repas_depuis_plat", {
-    p_description: description,
-    p_mange_le: maintenant.toISOString(),
-    p_journee: journeeDe(maintenant, fuseau),
-    p_type_repas: typeDeRepas(maintenant, fuseau),
-    p_constituants: appliquerCoefficient(plat.constituants.map(sansIdentifiant), coefficient),
-  });
-  if (error) throw error;
-  const repasId = data as string;
-
-  // Le Repas existe déjà : un échec de la précision ne doit pas le faire croire perdu (et pousser à un doublon).
-  // La fiche du Repas montre la précision et permet de relancer l'analyse.
-  if (precision.trim()) {
-    const miseAJour = await supabase.from("repas").update({ precision: precision.trim() }).eq("id", repasId);
-    if (miseAJour.error) console.warn("précision non enregistrée :", miseAJour.error.message);
-    else await analyserRepas(repasId);
-  }
+  const repasId = randomUUID();
+  await envoyer(
+    {
+      type: "repas_depuis_plat",
+      id: repasId,
+      description,
+      mangeLe: maintenant.toISOString(),
+      journee: journeeDe(maintenant, fuseau),
+      typeRepas: typeDeRepas(maintenant, fuseau),
+      constituants: appliquerCoefficient(plat.constituants.map(sansIdentifiant), coefficient),
+      ...(precision.trim() ? { precision: precision.trim() } : {}),
+    },
+    { attendre: true },
+  );
   return repasId;
 }

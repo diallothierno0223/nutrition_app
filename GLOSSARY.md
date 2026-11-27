@@ -43,7 +43,7 @@ L'eau et les boissons sans calories (thé, tisane non sucrés) bues pendant une 
 _À éviter_ : Boissons
 
 **Repas en attente** :
-Un Repas saisi sans réseau, pas encore analysé par l'IA. Il n'est pas compté dans les jauges.
+Un Repas pas encore analysé par l'IA : saisi sans réseau, ou dont l'analyse a échoué. Il n'est pas compté dans les jauges. Saisi sans réseau, il est envoyé et analysé automatiquement au retour du réseau ; sinon, l'analyse se relance depuis sa fiche.
 _À éviter_ : Brouillon, repas hors ligne
 
 **Type de repas** :
@@ -151,3 +151,7 @@ _À éviter_ : Semaine écoulée, lundi–vendredi
 **Export** :
 La copie de toutes les données du compte, en un ZIP de tableaux CSV (un par table) que l'utilisateur enregistre hors de l'app, avec les photos des Repas si l'option « Inclure les photos » est activée (sinon listées par lien temporaire). C'est la seule sauvegarde : la base gratuite n'en fait pas.
 _À éviter_ : Sauvegarde (pour l'export de l'app), backup, téléchargement
+
+**File d'envoi** :
+Les actions faites sans réseau (cocher une course, ajouter un article ou de l'eau, enregistrer un Repas depuis un Plat, saisir un Repas en attente), gardées sur le téléphone et envoyées dans l'ordre au retour du réseau. En attendant, l'écran les ajoute aux dernières valeurs synchronisées.
+_À éviter_ : Brouillons, synchronisation (pour la file elle-même), mode avion

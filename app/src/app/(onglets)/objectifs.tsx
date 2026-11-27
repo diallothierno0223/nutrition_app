@@ -11,6 +11,7 @@ import { chargerObjectifEau } from "@/donnees/hydratation";
 import { chargerObjectifs, enregistrerObjectifs } from "@/donnees/objectifs";
 import { datesDeModification, estimerObjectifs, type ResultatEstimation } from "@/donnees/profil";
 import { lireNombre, versTexte } from "@/lib/saisie";
+import { messageDEchec } from "@/synchro/reseau";
 import {
   NUTRIMENTS,
   SEUIL_ECART_GARDE_FOU,
@@ -106,8 +107,8 @@ export default function Objectifs() {
       await enregistrerObjectifs(objectifs, eauLitres === null ? null : Math.round(eauLitres * 1000));
       setMessage("Objectifs appliqués.");
       charger();
-    } catch {
-      setMessage("Enregistrement impossible. Vérifie ta connexion.");
+    } catch (e) {
+      setMessage(messageDEchec(e, "Enregistrement impossible. Vérifie ta connexion."));
     } finally {
       setEnvoi(false);
     }

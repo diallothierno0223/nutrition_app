@@ -3,6 +3,8 @@ import { NUTRIMENTS, type CategorieDeRecette, type Constituant, type ReglagesDuS
 
 import { fuseauDuTelephone } from "@/donnees/repas";
 import { supabase } from "@/lib/supabase";
+import { ingredientsAvecEnvois } from "@/synchro/projection";
+import { envoisEnFile, lectureEnCache } from "@/synchro/synchro";
 
 export type IngredientEnregistre = Constituant & { id: string; position: number; coche: boolean };
 
@@ -41,6 +43,16 @@ function trier(rendezVous: RendezVous & { recettes: (RecetteEnregistree & { posi
   return { ...rendezVous, recettes };
 }
 
+/** Les cases de la Liste de courses cochées hors ligne, encore en file, s'appliquent par-dessus le cache. */
+async function avecCochesEnFile(rendezVous: RendezVous | null): Promise<RendezVous | null> {
+  if (!rendezVous) return null;
+  const envois = await envoisEnFile();
+  return {
+    ...rendezVous,
+    recettes: rendezVous.recettes.map((r) => ({ ...r, ingredients: ingredientsAvecEnvois(r.ingredients, envois) })),
+  };
+}
+
 /**
  * Demande le Rendez-vous de la semaine. Sans `force`, le serveur renvoie celui qui existe déjà (aucun appel à l'IA) ;
  * avec `force`, il en génère un nouveau qui remplace les Recettes de la semaine.
@@ -55,27 +67,37 @@ export async function genererRendezVous(force = false): Promise<{ rendez_vous_id
 
 /** Le Rendez-vous le plus récent, ou null s'il n'y en a encore aucun. */
 export async function dernierRendezVous(): Promise<RendezVous | null> {
-  const { data, error } = await supabase
-    .from("rendez_vous")
-    .select(SELECTION)
-    .order("samedi", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) throw error;
-  return data ? trier(data as never) : null;
+  return avecCochesEnFile(
+    await lectureEnCache("dernier-rendez-vous", async () => {
+      const { data, error } = await supabase
+        .from("rendez_vous")
+        .select(SELECTION)
+        .order("samedi", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data ? trier(data as never) : null;
+    }),
+  );
 }
 
 export async function chargerRendezVous(id: string): Promise<RendezVous | null> {
-  const { data, error } = await supabase.from("rendez_vous").select(SELECTION).eq("id", id).maybeSingle();
-  if (error) throw error;
-  return data ? trier(data as never) : null;
+  return avecCochesEnFile(
+    await lectureEnCache(`rendez-vous:${id}`, async () => {
+      const { data, error } = await supabase.from("rendez_vous").select(SELECTION).eq("id", id).maybeSingle();
+      if (error) throw error;
+      return data ? trier(data as never) : null;
+    }),
+  );
 }
 
 /** Les Rendez-vous passés, du plus récent au plus ancien. */
 export async function listerRendezVous(): Promise<ResumeRendezVous[]> {
-  const { data, error } = await supabase.from("rendez_vous").select("id, samedi").order("samedi", { ascending: false });
-  if (error) throw error;
-  return data;
+  return lectureEnCache("rendez-vous", async () => {
+    const { data, error } = await supabase.from("rendez_vous").select("id, samedi").order("samedi", { ascending: false });
+    if (error) throw error;
+    return data;
+  });
 }
 
 /** « À refaire » : la Recette pourra revenir malgré la règle de variété. */
@@ -85,17 +107,19 @@ export async function marquerARefaire(recetteId: string, aRefaire: boolean): Pro
 }
 
 export async function chargerReglagesDuSamedi(): Promise<ReglagesDuSamedi> {
-  const { data, error } = await supabase
-    .from("reglages")
-    .select("samedi_recettes, samedi_portions, samedi_portions_nomade, samedi_matins_rapides")
-    .single();
-  if (error) throw error;
-  return {
-    recettes: data.samedi_recettes,
-    portions: data.samedi_portions,
-    portionsNomade: data.samedi_portions_nomade,
-    matinsRapides: data.samedi_matins_rapides,
-  };
+  return lectureEnCache("reglages-samedi", async () => {
+    const { data, error } = await supabase
+      .from("reglages")
+      .select("samedi_recettes, samedi_portions, samedi_portions_nomade, samedi_matins_rapides")
+      .single();
+    if (error) throw error;
+    return {
+      recettes: data.samedi_recettes,
+      portions: data.samedi_portions,
+      portionsNomade: data.samedi_portions_nomade,
+      matinsRapides: data.samedi_matins_rapides,
+    };
+  });
 }
 
 export async function enregistrerReglagesDuSamedi(reglages: ReglagesDuSamedi): Promise<void> {

@@ -2,11 +2,14 @@
 import { lireReglagesDesNotifications, type ReglagesDesNotifications } from "@noyau";
 
 import { supabase } from "@/lib/supabase";
+import { lectureEnCache } from "@/synchro/synchro";
 
 export async function chargerReglagesDesNotifications(): Promise<ReglagesDesNotifications> {
-  const { data, error } = await supabase.from("reglages").select("notifications").single();
-  if (error) throw error;
-  return lireReglagesDesNotifications(data.notifications);
+  return lectureEnCache("reglages-notifications", async () => {
+    const { data, error } = await supabase.from("reglages").select("notifications").single();
+    if (error) throw error;
+    return lireReglagesDesNotifications(data.notifications);
+  });
 }
 
 export async function enregistrerReglagesDesNotifications(reglages: ReglagesDesNotifications): Promise<void> {

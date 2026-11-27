@@ -4,7 +4,13 @@ import { useEffect } from "react";
 import { useColorScheme } from "react-native";
 
 import { FournisseurSession, useSession } from "@/auth/session";
-import { configurerNotifications, useOuvertureDesNotifications } from "@/notifications/programmation";
+import {
+  configurerNotifications,
+  rafraichirNotifications,
+  useOuvertureDesNotifications,
+} from "@/notifications/programmation";
+import { prechargerLeCache } from "@/synchro/prechargement";
+import { demarrerSynchro, surRejeu } from "@/synchro/synchro";
 
 SplashScreen.preventAutoHideAsync();
 configurerNotifications();
@@ -12,6 +18,19 @@ configurerNotifications();
 function Navigation() {
   const { session, chargement } = useSession();
   useOuvertureDesNotifications(!chargement && !!session);
+  const connecte = !!session;
+
+  // Rejeu de la file d'envoi et préchargement du cache, tant qu'un compte est connecté (ticket 17).
+  useEffect(() => {
+    if (!connecte) return;
+    const arreter = demarrerSynchro(prechargerLeCache);
+    // Une fois la file envoyée (Repas en attente analysé…), la notification du soir reprend les vrais chiffres.
+    const desabonner = surRejeu(() => rafraichirNotifications());
+    return () => {
+      arreter();
+      desabonner();
+    };
+  }, [connecte]);
 
   useEffect(() => {
     if (!chargement) SplashScreen.hideAsync();

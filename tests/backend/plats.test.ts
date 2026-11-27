@@ -18,8 +18,9 @@ async function creerPlat(client: SupabaseClient, nom = "Mafé du dimanche") {
   return data as string;
 }
 
-async function reutiliser(client: SupabaseClient, journee: string, constituants = MAFE) {
+async function reutiliser(client: SupabaseClient, journee: string, constituants = MAFE, id: string = crypto.randomUUID()) {
   const { data, error } = await client.rpc("enregistrer_repas_depuis_plat", {
+    p_id: id,
     p_description: "Mafé du dimanche",
     p_mange_le: `${journee}T12:30:00Z`,
     p_journee: journee,
@@ -69,6 +70,16 @@ describe("Plats réutilisables", () => {
     const { data: repas } = await moi.client.from("repas").select("statut, commentaire").eq("id", repasId).single();
     expect(repas).toEqual({ statut: "analyse", commentaire: null });
     expect(await caloriesDuJour(moi.client, "2026-10-01")).toBe(645);
+  });
+
+  it("ne crée pas de doublon quand le même envoi est rejoué (file d'envoi hors ligne)", async () => {
+    const id = crypto.randomUUID();
+    expect(await reutiliser(moi.client, "2026-10-09", MAFE, id)).toBe(id);
+    expect(await reutiliser(moi.client, "2026-10-09", MAFE, id)).toBe(id);
+
+    const { data: constituants } = await moi.client.from("constituants").select("id").eq("repas_id", id);
+    expect(constituants).toHaveLength(MAFE.length);
+    expect(await caloriesDuJour(moi.client, "2026-10-09")).toBe(645);
   });
 
   it("ne change jamais un Repas passé quand on modifie ou supprime le Plat", async () => {

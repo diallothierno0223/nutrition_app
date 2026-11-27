@@ -1,7 +1,8 @@
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Pressable, StyleSheet } from "react-native";
 
+import { BandeauHorsLigne } from "@/components/bandeau-hors-ligne";
 import { CompteurEau } from "@/components/compteur-eau";
 import { CourbeDePoids } from "@/components/courbe-de-poids";
 import { Ecran } from "@/components/ecran";
@@ -24,6 +25,7 @@ import { fuseauDuTelephone, repasDeLaJournee, type RepasDetaille } from "@/donne
 import { useTheme } from "@/hooks/use-theme";
 import { rafraichirNotifications } from "@/notifications/programmation";
 import { synchroniserSante } from "@/sante/health-connect";
+import { surRejeu } from "@/synchro/synchro";
 import {
   journeeDe,
   journeesDeLaSemaine,
@@ -95,11 +97,14 @@ export default function Dashboard() {
     );
   }, []);
   useFocusEffect(charger);
+  // Au retour du réseau, la file d'envoi part : on relit les vraies valeurs du serveur.
+  useEffect(() => surRejeu(charger), [charger]);
 
   const journal = donnees?.repas;
 
   return (
     <Ecran titre="Aujourd'hui">
+      <BandeauHorsLigne />
       {erreur && <ThemedText themeColor="textSecondary">La base ne répond pas.</ThemedText>}
 
       {donnees && <Jauges totaux={donnees.totaux} objectifs={donnees.objectifs} />}
@@ -144,7 +149,10 @@ export default function Dashboard() {
             {libelleDuTypeDeRepas(repas.type_repas)} ·{" "}
             {repas.statut === "analyse"
               ? formaterValeur("calories", totauxDuRepas(repas.constituants).calories)
-              : "en attente"}
+              : repas.enFile
+                ? "en attente de réseau"
+                : "en attente"}
+            {repas.enFile && repas.statut === "analyse" && " · envoi en attente"}
           </ThemedText>
           <ThemedText type="small" themeColor="textSecondary" numberOfLines={2}>
             {repas.description || "Repas en photo"}

@@ -11,6 +11,12 @@
     "types": ["node"]
   },
   "include": ["noyau", "tests", "vitest.config.ts", "app/src/synchro"],
-  // L'adaptateur expo-sqlite est vérifié par le tsconfig de l'app.
-  "exclude": ["app/src/synchro/base-locale-expo.ts"]
+  // Les modules de synchro propres à l'app (expo-sqlite, Supabase, écrans) sont vérifiés par le tsconfig de l'app ;
+  // ici, seuls les modules purs, testés dans Node.
+  "exclude": [
+    "app/src/synchro/base-locale-expo.ts",
+    "app/src/synchro/executer.ts",
+    "app/src/synchro/prechargement.ts",
+    "app/src/synchro/synchro.ts"
+  ]
 }

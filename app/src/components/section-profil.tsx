@@ -10,6 +10,7 @@ import { Spacing } from "@/constants/theme";
 import { enregistrerProfil, type Profil } from "@/donnees/profil";
 import { fuseauDuTelephone } from "@/donnees/repas";
 import { lireNombre, versTexte } from "@/lib/saisie";
+import { messageDEchec } from "@/synchro/reseau";
 import { NIVEAUX_D_ACTIVITE, SEXES, journeeDe, libelleDuNiveauDActivite, libelleDuSexe } from "@noyau";
 
 
@@ -70,8 +71,8 @@ export function SectionProfil({ profil, onEnregistre }: { profil: Profil; onEnre
       await enregistrerProfil(resultat, fuseauDuTelephone());
       setMessage("Profil enregistré.");
       onEnregistre();
-    } catch {
-      setMessage("Enregistrement impossible. Vérifie ta connexion.");
+    } catch (e) {
+      setMessage(messageDEchec(e, "Enregistrement impossible. Vérifie ta connexion."));
     } finally {
       setEnvoi(false);
     }

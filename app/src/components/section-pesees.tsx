@@ -9,6 +9,7 @@ import { Spacing } from "@/constants/theme";
 import { enregistrerPesee, supprimerPesee, type Pesee } from "@/donnees/profil";
 import { fuseauDuTelephone } from "@/donnees/repas";
 import { lireNombre } from "@/lib/saisie";
+import { messageDEchec } from "@/synchro/reseau";
 import { POIDS_MAX_KG, POIDS_MIN_KG, journeeDe, libelleDeJournee } from "@noyau";
 
 /** Ajout d'une Pesée (une par date) et liste des dernières, supprimables. */
@@ -28,8 +29,8 @@ export function SectionPesees({ pesees, onChange }: { pesees: Pesee[]; onChange:
       setPoids("");
       setMessage(null);
       onChange();
-    } catch {
-      setMessage("Enregistrement impossible. Vérifie ta connexion.");
+    } catch (e) {
+      setMessage(messageDEchec(e, "Enregistrement impossible. Vérifie ta connexion."));
     }
   }
 
@@ -37,8 +38,8 @@ export function SectionPesees({ pesees, onChange }: { pesees: Pesee[]; onChange:
     try {
       await supprimerPesee(id);
       onChange();
-    } catch {
-      setMessage("Suppression impossible. Vérifie ta connexion.");
+    } catch (e) {
+      setMessage(messageDEchec(e, "Suppression impossible. Vérifie ta connexion."));
     }
   }
 

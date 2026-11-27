@@ -10,6 +10,7 @@ import { Spacing } from "@/constants/theme";
 import { ajouterRegle, archiverRegle, listerRegles, modifierRegle, type Regle } from "@/donnees/regles";
 import { fuseauDuTelephone } from "@/donnees/repas";
 import { useTheme } from "@/hooks/use-theme";
+import { messageDEchec } from "@/synchro/reseau";
 import {
   CATEGORIES_DE_REGLE,
   contientUnSeuilChiffre,
@@ -50,8 +51,8 @@ export default function Regles() {
       setBrouillon(nouveauBrouillon());
       setMessage(null);
       charger();
-    } catch {
-      setMessage("Enregistrement impossible. Vérifie ta connexion.");
+    } catch (e) {
+      setMessage(messageDEchec(e, "Enregistrement impossible. Vérifie ta connexion."));
     } finally {
       setEnvoi(false);
     }
@@ -61,8 +62,8 @@ export default function Regles() {
     try {
       await archiverRegle(regle.id, regle.archivee_le === null);
       charger();
-    } catch {
-      setMessage("Action impossible. Vérifie ta connexion.");
+    } catch (e) {
+      setMessage(messageDEchec(e, "Action impossible. Vérifie ta connexion."));
     }
   }
 

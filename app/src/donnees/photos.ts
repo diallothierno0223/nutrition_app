@@ -1,4 +1,5 @@
 // Photos de Repas : compressées sur le téléphone, déposées dans le bucket privé « photos-repas » sous <user_id>/.
+import { Directory, File, Paths } from "expo-file-system";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 
 import { supabase } from "@/lib/supabase";
@@ -50,4 +51,16 @@ export async function adresseDePhoto(chemin: string): Promise<string> {
   const { data, error } = await supabase.storage.from(BUCKET_PHOTOS).createSignedUrl(chemin, 3600);
   if (error) throw error;
   return data.signedUrl;
+}
+
+/**
+ * Repas en attente (ticket 18) : la photo, compressée, est gardée dans les documents de l'app jusqu'à son envoi.
+ * Renvoie l'adresse locale du fichier.
+ */
+export async function conserverPhotoEnAttente(photo: PhotoChoisie, repasId: string): Promise<string> {
+  const dossier = new Directory(Paths.document, "repas-en-attente");
+  dossier.create({ intermediates: true, idempotent: true });
+  const destination = new File(dossier, `${repasId}.jpg`);
+  await new File(await compresser(photo)).copy(destination, { overwrite: true });
+  return destination.uri;
 }

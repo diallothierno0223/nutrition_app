@@ -22,6 +22,7 @@ import {
   type RepasDetaille,
 } from "@/donnees/repas";
 import { rafraichirNotifications } from "@/notifications/programmation";
+import { surRejeu } from "@/synchro/synchro";
 import { libelleDuTypeDeRepas, totauxDuRepas } from "@noyau";
 
 export default function DetailRepas() {
@@ -51,6 +52,8 @@ export default function DetailRepas() {
   useEffect(() => {
     charger();
   }, [charger]);
+  // Un Repas encore en file (hors ligne) devient le vrai Repas du serveur dès que la file est envoyée.
+  useEffect(() => surRejeu(charger), [charger]);
 
   // La précision déjà enregistrée sert de point de départ ; on la reprend quand le Repas change.
   const precisionEnregistree = repas?.precision ?? "";
@@ -101,6 +104,23 @@ export default function DetailRepas() {
   }
 
   const heure = new Date(repas.mange_le).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+
+  // Encore dans la file d'envoi (hors ligne) : rien n'est modifiable avant qu'il soit parti.
+  if (repas.enFile) {
+    return (
+      <Ecran>
+        <Stack.Screen options={{ title: `${libelleDuTypeDeRepas(repas.type_repas)} · ${heure}` }} />
+        {repas.photoLocale && <Image source={{ uri: repas.photoLocale }} style={styles.photo} contentFit="cover" />}
+        {repas.description !== "" && <ThemedText>{repas.description}</ThemedText>}
+        <ThemedText themeColor="textSecondary">
+          {repas.statut === "en_attente"
+            ? "Repas en attente : il sera envoyé et analysé automatiquement au retour du réseau. Il n'est pas encore compté dans les jauges."
+            : "Enregistré sur le téléphone, compté dans les jauges : il sera envoyé au retour du réseau. Les corrections seront possibles ensuite."}
+        </ThemedText>
+        {repas.statut === "analyse" && <ValeursNutritionnelles valeurs={totauxDuRepas(repas.constituants)} />}
+      </Ecran>
+    );
+  }
 
   return (
     <Ecran>
