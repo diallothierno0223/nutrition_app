@@ -22,6 +22,8 @@ function Navigation() {
         <Stack.Screen name="(onglets)" />
         <Stack.Screen name="repas/[id]" options={{ headerShown: true, title: "Repas" }} />
         <Stack.Screen name="plat/[id]" options={{ headerShown: true, title: "Plat" }} />
+        <Stack.Screen name="rendez-vous/index" options={{ headerShown: true, title: "Rendez-vous passés" }} />
+        <Stack.Screen name="rendez-vous/[id]" options={{ headerShown: true, title: "Rendez-vous" }} />
       </Stack.Protected>
       <Stack.Protected guard={!session}>
         <Stack.Screen name="connexion" />

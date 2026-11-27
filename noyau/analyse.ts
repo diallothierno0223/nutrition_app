@@ -35,7 +35,8 @@ function nombrePositif(objet: Record<string, unknown>, champ: string): number {
   return v;
 }
 
-function lireConstituant(brut: unknown): Constituant {
+/** Lit un Constituant (ou un ingrédient de Recette) renvoyé par l'IA ; lève une erreur s'il est inutilisable. */
+export function lireConstituant(brut: unknown): Constituant {
   if (!estObjet(brut)) throw new AnalyseInvalide("un Constituant doit être un objet");
   const unite = texte(brut, "unite");
   if (unite !== "g" && unite !== "ml") throw new AnalyseInvalide("« unite » doit valoir g ou ml");

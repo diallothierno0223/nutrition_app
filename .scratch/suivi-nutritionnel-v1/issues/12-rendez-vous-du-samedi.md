@@ -4,12 +4,16 @@
 
 **Blocked by:** 07, 10, 11
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Noyau métier : Période d'analyse = les 7 Journées précédant le samedi.
-- [ ] `generer-rendez-vous` envoie les totaux de la Période d'analyse, les Objectifs, les Règles actives et les Recettes des 3 dernières semaines ; écrit le tout en une transaction.
-- [ ] Chaque Recette : ingrédients, étapes courtes, nutriments par portion, nombre de portions, conservation, ordre de consommation conseillé.
-- [ ] Règle de variété : pas de Recette des 3 dernières semaines sauf celles marquées « à refaire » ; bouton « à refaire » sur chaque Recette.
-- [ ] Nombres réglables : Recettes, portions, Petits-déjeuners nomades, petits-déjeuners rapides.
-- [ ] Nouvelle génération forcée possible ; historique des Rendez-vous passés consultable.
-- [ ] Tests backend avec l'IA factice : contenu écrit, une génération forcée remplace celle de la semaine.
+- [x] Noyau métier : Période d'analyse = les 7 Journées précédant le samedi.
+- [x] `generer-rendez-vous` envoie les totaux de la Période d'analyse, les Objectifs, les Règles actives et les Recettes des 3 dernières semaines ; écrit le tout en une transaction.
+- [x] Chaque Recette : ingrédients, étapes courtes, nutriments par portion, nombre de portions, conservation, ordre de consommation conseillé.
+- [x] Règle de variété : pas de Recette des 3 dernières semaines sauf celles marquées « à refaire » ; bouton « à refaire » sur chaque Recette.
+- [x] Nombres réglables : Recettes, portions, Petits-déjeuners nomades, petits-déjeuners rapides.
+- [x] Nouvelle génération forcée possible ; historique des Rendez-vous passés consultable.
+- [x] Tests backend avec l'IA factice : contenu écrit, une génération forcée remplace celle de la semaine.
+
+## Avancement
+
+Fait (non vérifié sur le téléphone ; Gemini réel non testé). Onglet Samedi : « Préparer mon Rendez-vous » (idempotent), « Nouvelle génération » (forcée, même Rendez-vous, Recettes remplacées), Bilan, Recettes par catégorie (dépliables : nutriments par portion calculés par le noyau depuis les ingrédients, ingrédients, étapes, conservation, ordre conseillé), « à refaire », historique des Rendez-vous passés et Réglages du samedi. Le samedi de référence est le samedi même à partir de 6 h (heure locale), sinon le précédent. La règle de variété ne porte que sur les Recettes de déjeuners et dîners : les petits-déjeuners peuvent revenir. Le Rendez-vous n'est écrit que par l'Edge Function (rôle de service, `ecrire_rendez_vous`) ; l'utilisateur ne peut modifier que « à refaire ».

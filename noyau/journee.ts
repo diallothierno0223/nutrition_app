@@ -43,6 +43,11 @@ export function journeeDe(instant: Date, fuseau: string): string {
   return `${annee}-${mois}-${jour}`;
 }
 
+/** L'heure locale (0 à 23) d'un instant dans le fuseau donné. */
+export function heureDe(instant: Date, fuseau: string): number {
+  return partiesLocales(instant, fuseau).heure;
+}
+
 /** Avant 11 h : petit-déjeuner ; 11 h–16 h : déjeuner ; 16 h–18 h : collation ; à partir de 18 h : dîner. */
 export function typeDeRepas(instant: Date, fuseau: string): TypeDeRepas {
   const { heure } = partiesLocales(instant, fuseau);

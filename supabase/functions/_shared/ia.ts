@@ -9,8 +9,13 @@ import {
   libelleDuNiveauDActivite,
   libelleDuTypeDeRepas,
   uniteDuNutriment,
+  IDEES_RAPIDES,
   lireAnalyseRepas,
   lireEstimationObjectifs,
+  lireRendezVous,
+  type ReglagesDuSamedi,
+  type RendezVousGenere,
+  type ValeursNutritionnelles,
   type AnalyseRepas,
   type Constituant,
   type EstimationObjectifs,
@@ -66,9 +71,24 @@ export type DemandeEstimationObjectifs = {
   reglesDuMedecin: RegleDuMedecin[];
 };
 
+export type DemandeRendezVous = {
+  samedi: string;
+  /** Les totaux des Journées renseignées de la Période d'analyse (les Journées sans Repas n'y sont pas). */
+  periode: { journee: string; totaux: ValeursNutritionnelles }[];
+  objectifs: ObjectifsJournaliers | null;
+  reglesDuMedecin: RegleDuMedecin[];
+  /** Recettes à ne pas reproposer (règle de variété). */
+  interdites: string[];
+  /** Recettes marquées « à refaire » : elles peuvent revenir. */
+  aRefaire: string[];
+  reglages: ReglagesDuSamedi;
+};
+
 export interface IA {
   analyserRepas(demande: DemandeAnalyseRepas): Promise<AnalyseRepas>;
   estimerObjectifs(demande: DemandeEstimationObjectifs): Promise<EstimationObjectifs>;
+  /** Le Rendez-vous du samedi, déjà validé par le noyau (nombres des Réglages, règle de variété). */
+  genererRendezVous(demande: DemandeRendezVous): Promise<RendezVousGenere>;
 }
 
 export function iaDepuisEnvironnement(): IA {
@@ -110,7 +130,61 @@ const iaFactice: IA = {
       ),
     });
   },
+
+  // Les Recettes « à refaire » passent en premier, puis celles d'une réserve, en sautant les interdites ; toutes
+  // contiennent de l'oignon (ingrédient commun de la Liste de courses).
+  async genererRendezVous({ periode, reglesDuMedecin, interdites, aRefaire, reglages }) {
+    const interditesNormalisees = new Set(interdites.map((n) => n.toLocaleLowerCase("fr-FR")));
+    const disponibles = [...new Set([...aRefaire, ...RESERVE_FACTICE])].filter(
+      (n) => !interditesNormalisees.has(n.toLocaleLowerCase("fr-FR")),
+    );
+    const choisies = disponibles.slice(0, reglages.recettes);
+    const base = Math.floor(reglages.portions / reglages.recettes);
+    const recettes = [
+      ...choisies.map((nom, i) => recetteFactice(nom, "repas", base + (i < reglages.portions % reglages.recettes ? 1 : 0))),
+      recetteFactice("Galettes de mil", "petit_dejeuner_nomade", reglages.portionsNomade),
+      recetteFactice("Bouillie de mil", "petit_dejeuner_rapide", Math.max(1, Math.ceil(reglages.matinsRapides / 2))),
+      recetteFactice("Pain complet et avocat", "petit_dejeuner_rapide", Math.max(1, Math.floor(reglages.matinsRapides / 2))),
+    ];
+    return lireRendezVous(
+      {
+        bilan: `Bilan factice : ${periode.length} Journée(s) renseignée(s). Règles du médecin : ${reglesDuMedecin.length}.`,
+        recettes,
+      },
+      reglages,
+      interdites,
+    );
+  },
 };
+
+const RESERVE_FACTICE = [
+  "Mafé de poisson",
+  "Fonio aux légumes",
+  "Soupe kandia",
+  "Yassa de poulet",
+  "Attiéké poisson braisé",
+  "Thiéboudienne légère",
+  "Riz gras aux légumes",
+  "Sauce feuilles de manioc",
+  "Kédjénou de poulet",
+  "Ndolé allégé",
+];
+
+function recetteFactice(nom: string, categorie: string, portions: number) {
+  const ingredient = (nomIngredient: string, quantite: number, calories: number, ags: number) => ({
+    nom: nomIngredient, quantite, unite: "g", equivalent_cuisine: "",
+    calories, proteines: calories / 20, glucides: calories / 10, sucres: 2, lipides: calories / 40, ags, fibres: 3, sel: 0.5,
+  });
+  return {
+    nom,
+    categorie,
+    portions,
+    ingredients: [ingredient("Oignon", 150, 60, 0), ingredient(`Base : ${nom}`, 200 * portions, 400 * portions, portions)],
+    etapes: ["Préparer les ingrédients", "Cuire à feu doux"],
+    conservation: "Réfrigérateur 3 jours, congélateur 2 mois",
+    ordre_conseille: "Dans l'ordre de la liste",
+  };
+}
 
 const SCHEMA_CONSTITUANT = {
   type: "object",
@@ -246,5 +320,69 @@ function iaGemini(cle: string, modele: string): IA {
       const brut = await appelerGemini(cle, modele, CONSIGNES_ESTIMATION, decrireDemandeEstimation(demande), SCHEMA_ESTIMATION);
       return lireEstimationObjectifs(brut);
     },
+
+    async genererRendezVous(demande) {
+      const brut = await appelerGemini(cle, modele, CONSIGNES_RENDEZ_VOUS, decrireDemandeRendezVous(demande), SCHEMA_RENDEZ_VOUS);
+      return lireRendezVous(brut, demande.reglages, demande.interdites);
+    },
   };
+}
+
+const SCHEMA_RENDEZ_VOUS = {
+  type: "object",
+  properties: {
+    bilan: { type: "string" },
+    recettes: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          nom: { type: "string" },
+          categorie: { type: "string", enum: ["repas", "petit_dejeuner_nomade", "petit_dejeuner_rapide"] },
+          portions: { type: "integer", minimum: 1 },
+          ingredients: { type: "array", minItems: 1, items: SCHEMA_CONSTITUANT },
+          etapes: { type: "array", minItems: 1, items: { type: "string" } },
+          conservation: { type: "string" },
+          ordre_conseille: { type: "string" },
+        },
+        required: ["nom", "categorie", "portions", "ingredients", "etapes", "conservation", "ordre_conseille"],
+      },
+    },
+  },
+  required: ["bilan", "recettes"],
+};
+
+const CONSIGNES_RENDEZ_VOUS = `Tu es nutritionniste et cuisinier. Tu prépares le batch cooking de la semaine d'une personne atteinte d'hypercholestérolémie génétique, qui aime la cuisine africaine (mafé, fonio, attiéké, yassa, poisson braisé…).
+Rédige :
+- un Bilan de la semaine (bilan) : 3 à 6 phrases sur les 7 derniers jours au regard des Objectifs (d'abord les acides gras saturés, les fibres, le sucre et le sel), qui expliquent ce qui oriente les Recettes ;
+- des Recettes de déjeuners et dîners (categorie « repas ») de cuisine africaine, faciles à préparer en grande quantité et à conserver ;
+- une Recette de Petit-déjeuner nomade (categorie « petit_dejeuner_nomade ») : préparée à l'avance, elle se mange en marchant ou dans les transports ;
+- des idées de petit-déjeuner rapide (categorie « petit_dejeuner_rapide ») pour les autres matins.
+Pour chaque Recette : ingrédients avec leur quantité totale en g ou ml pour toutes les portions, un équivalent courant (« 2 oignons moyens ») et leurs nutriments pour cette quantité (calories en kcal ; protéines, glucides, sucres, lipides, acides gras saturés « ags », fibres, sel en g) ; étapes courtes ; conservation (réfrigérateur ou congélation, durée) ; ordre de consommation conseillé dans la semaine.
+Respecte exactement les nombres demandés. Ne repropose aucune Recette de la liste à éviter. Les Règles du médecin priment sur tes repères généraux.
+Réponds uniquement avec le JSON demandé.`;
+
+function decrireDemandeRendezVous(demande: DemandeRendezVous): string {
+  const { samedi, periode, objectifs, reglesDuMedecin, interdites, aRefaire, reglages } = demande;
+  const jours = periode.length === 0
+    ? "Aucun Repas enregistré."
+    : periode
+      .map(({ journee, totaux }) =>
+        `${journee} : ${NUTRIMENTS.map((n) => `${libelleDuNutriment(n)} ${totaux[n]} ${uniteDuNutriment(n)}`).join(", ")}`
+      )
+      .join("\n");
+  const cibles = objectifs
+    ? NUTRIMENTS.flatMap((n) => (objectifs[n] === null ? [] : [`${libelleDuNutriment(n)} ${objectifs[n]} ${uniteDuNutriment(n)}`])).join(", ")
+    : "aucun";
+  return [
+    `Samedi : ${samedi}.`,
+    `Totaux des 7 derniers jours (Journées renseignées) :\n${jours}`,
+    `Objectifs journaliers : ${cibles}.`,
+    `Règles du médecin (elles priment) :\n${decrireRegles(reglesDuMedecin)}`,
+    `À produire : ${reglages.recettes} Recettes « repas » couvrant ${reglages.portions} portions au total ; ` +
+    `1 Petit-déjeuner nomade de ${reglages.portionsNomade} portions ; ` +
+    `${IDEES_RAPIDES} idées de petit-déjeuner rapide pour ${reglages.matinsRapides} matins.`,
+    `Recettes à éviter (proposées ces 3 dernières semaines) : ${interdites.join(", ") || "aucune"}.`,
+    `Recettes appréciées, qui peuvent revenir : ${aRefaire.join(", ") || "aucune"}.`,
+  ].join("\n");
 }
