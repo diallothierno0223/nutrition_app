@@ -7,7 +7,13 @@ import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { chargerReglagesDesNotifications, enregistrerReglagesDesNotifications } from "@/donnees/reglages";
 import { useEnvoi } from "@/hooks/use-envoi";
-import { rafraichirNotifications } from "@/notifications/programmation";
+import {
+  autoriserAlarmesExactes,
+  envoyerNotificationDeTest,
+  etatDesNotifications,
+  rafraichirNotifications,
+  type EtatDesNotifications,
+} from "@/notifications/programmation";
 import {
   TYPES_DE_NOTIFICATION,
   estUneHeureValide,
@@ -21,8 +27,11 @@ export function ReglagesDesNotifications() {
   const [message, setMessage] = useState<string | null>(null);
   const { envoi, erreur, envoyer } = useEnvoi();
 
+  const [etat, setEtat] = useState<EtatDesNotifications | null>(null);
+
   useEffect(() => {
     chargerReglagesDesNotifications().then(setReglages, () => setMessage("La base ne répond pas."));
+    etatDesNotifications().then(setEtat, () => undefined);
   }, []);
 
   if (!reglages) return message ? <ThemedText themeColor="textSecondary">{message}</ThemedText> : null;
@@ -35,8 +44,22 @@ export function ReglagesDesNotifications() {
     if (await envoyer(() => enregistrerReglagesDesNotifications(reglages))) {
       // Enregistrer ses réglages vaut accord : la permission est redemandée si elle avait été refusée.
       await rafraichirNotifications(undefined, { demander: true });
-      setMessage("Notifications reprogrammées.");
+      await actualiserEtat();
     }
+  }
+
+  async function actualiserEtat() {
+    setEtat(await etatDesNotifications().catch(() => null));
+  }
+
+  async function tester() {
+    setMessage((await envoyerNotificationDeTest()) ? "Notification de test dans 10 secondes." : "Notifications refusées : autorise-les dans les paramètres Android de l'app.");
+  }
+
+  async function heureExacte() {
+    await autoriserAlarmesExactes().catch(() => setMessage("Cette build ne déclare pas les alarmes exactes : il faut une nouvelle build."));
+    await rafraichirNotifications();
+    await actualiserEtat();
   }
 
   return (
@@ -64,6 +87,17 @@ export function ReglagesDesNotifications() {
       {!valides && <ThemedText themeColor="textSecondary">Heure invalide (format HH:MM, par exemple 21:00).</ThemedText>}
       {(erreur ?? message) && <ThemedText themeColor="textSecondary">{erreur ?? message}</ThemedText>}
       <Bouton libelle="Enregistrer les notifications" variante="secondaire" onPress={enregistrer} desactive={!valides} enCours={envoi} />
+      {etat && (
+        <ThemedText type="small" themeColor="textSecondary">
+          {etat.autorisees ? "Permission accordée" : "Permission refusée"} · {etat.programmees} programmée(s)
+          {etat.prochaine ? ` · prochaine ${etat.prochaine.toLocaleString("fr-FR", { weekday: "long", hour: "2-digit", minute: "2-digit" })}` : ""}
+          {etat.exactes ? "" : " · heure approximative (alarmes exactes non autorisées)"}
+        </ThemedText>
+      )}
+      <View style={styles.ligne}>
+        <Bouton libelle="Envoyer un test" variante="secondaire" onPress={tester} />
+        {etat && !etat.exactes && <Bouton libelle="Autoriser l'heure exacte" variante="secondaire" onPress={heureExacte} />}
+      </View>
     </View>
   );
 }

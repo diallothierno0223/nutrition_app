@@ -49,7 +49,7 @@ async function autorisees(demander: boolean): Promise<boolean> {
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync(CANAL, {
       name: "Rappels",
-      importance: Notifications.AndroidImportance.DEFAULT,
+      importance: Notifications.AndroidImportance.HIGH,
     });
   }
   const actuelles = await Notifications.getPermissionsAsync();
@@ -119,6 +119,50 @@ const programmes: Record<TypeDeNotification, (heure: string, contexte: ContexteD
     }),
 };
 
+/** Ce qui permet de comprendre, depuis les Réglages, pourquoi une notification n'arrive pas. */
+export type EtatDesNotifications = {
+  autorisees: boolean;
+  /** Sans alarmes exactes, Android peut retarder les notifications de plusieurs minutes, voire davantage. */
+  exactes: boolean;
+  programmees: number;
+  prochaine: Date | null;
+};
+
+export async function etatDesNotifications(): Promise<EtatDesNotifications> {
+  const [permission, exactes, programmees] = await Promise.all([
+    Notifications.getPermissionsAsync(),
+    Platform.OS === "android" ? Notifications.getExactAlarmPermissionsAsync() : Promise.resolve({ granted: true }),
+    Notifications.getAllScheduledNotificationsAsync(),
+  ]);
+  const dates = await Promise.all(
+    programmees.map((n) => Notifications.getNextTriggerDateAsync(n.trigger as Notifications.SchedulableNotificationTriggerInput).catch(() => null)),
+  );
+  const prochaine = dates.filter((d): d is number => d !== null).sort((a, b) => a - b)[0];
+  return {
+    autorisees: permission.granted,
+    exactes: exactes.granted,
+    programmees: programmees.length,
+    prochaine: prochaine === undefined ? null : new Date(prochaine),
+  };
+}
+
+/** Ouvre l'écran Android qui autorise les alarmes exactes ; vrai si elles le sont au retour. */
+export async function autoriserAlarmesExactes(): Promise<boolean> {
+  if (Platform.OS !== "android") return true;
+  return (await Notifications.requestExactAlarmPermissionsAsync()).granted;
+}
+
+/** Notification d'essai, dans 10 secondes : vérifie la permission et l'affichage, sans attendre l'heure réglée. */
+export async function envoyerNotificationDeTest(): Promise<boolean> {
+  if (!(await autorisees(true))) return false;
+  await programmer(
+    "test",
+    { titre: "Notification de test", corps: "Les notifications fonctionnent." },
+    { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 10, channelId: CANAL },
+  );
+  return true;
+}
+
 /** Reprogramme toutes les notifications actives, à partir des réglages et de la Journée en cours. */
 async function programmerNotifications(
   reglages: ReglagesDesNotifications,
@@ -126,9 +170,17 @@ async function programmerNotifications(
   demander: boolean,
   maintenant = new Date(),
 ): Promise<void> {
-  await Notifications.cancelAllScheduledNotificationsAsync();
+  // Tout sauf la notification d'essai, qui doit arriver même si un écran reprogramme entre-temps.
+  const existantes = await Notifications.getAllScheduledNotificationsAsync();
+  for (const n of existantes) {
+    if (n.identifier !== "test") await Notifications.cancelScheduledNotificationAsync(n.identifier);
+  }
   const actives = (Object.keys(programmes) as TypeDeNotification[]).filter((t) => reglages[t].active);
-  if (actives.length === 0 || !(await autorisees(demander))) return;
+  if (actives.length === 0) return;
+  if (!(await autorisees(demander))) {
+    console.warn("notifications non programmées : permission refusée");
+    return;
+  }
   // Chaque type est programmé indépendamment : l'échec de l'un ne prive pas les autres de leur notification.
   for (const type of actives) {
     try {
