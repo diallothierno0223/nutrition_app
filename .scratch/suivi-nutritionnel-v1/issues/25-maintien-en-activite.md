@@ -2,7 +2,7 @@
 
 **What to build:** Le projet Supabase gratuit n'est jamais mis en pause, même si je n'ouvre pas l'app pendant plus d'une semaine (vacances, téléphone perdu…). Une requête automatique, une fois par jour, suffit à le garder actif.
 
-**Blocked by:** None (can start immediately) — utile seulement après le passage en ligne (vrai projet Supabase).
+**Blocked by:** 31 (le vrai projet Supabase doit exister).
 
 **Status:** needs-triage
 
