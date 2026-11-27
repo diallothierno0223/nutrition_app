@@ -26,7 +26,7 @@ import { fuseauDuTelephone, repasDeLaJournee, type RepasDetaille } from "@/donne
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 import { rafraichirNotifications } from "@/notifications/programmation";
-import { importerPesees, pasDuJour } from "@/sante/health-connect";
+import { synchroniserSante } from "@/sante/health-connect";
 import {
   journeeDe,
   journeesDeLaSemaine,
@@ -63,21 +63,21 @@ export default function Dashboard() {
   const charger = useCallback(() => {
     const journee = journeeDe(new Date(), fuseauDuTelephone());
     const semaine = journeesDeLaSemaine(journee);
+    // Health Connect d'abord (pas du jour, et nouvelles mesures de poids importées en Pesées au plus une fois par
+    // heure), pour que la courbe de poids les montre ; une panne de Health Connect n'empêche rien d'afficher.
+    const sante = synchroniserSante().catch(() => ({ pas: null }));
     Promise.all([
       repasDeLaJournee(journee),
       totauxDuJour(journee),
       chargerObjectifs(),
-      // Les nouvelles mesures de poids de Health Connect deviennent des Pesées avant d'afficher la courbe.
-      importerPesees()
-        .catch(() => 0)
-        .then(() => listerPesees(14)),
+      sante.then(() => listerPesees(14)),
       eauDuJour(journee),
       chargerObjectifEau(),
       totauxDeLaSemaine(lundiDe(journee)),
       totauxDesJournees(semaine[0] ?? journee, semaine[6] ?? journee),
-      pasDuJour().catch(() => null),
+      sante,
     ]).then(
-      ([repas, totaux, objectifs, pesees, eauMl, objectifEauMl, totauxSemaine, journeesSemaine, pas]) => {
+      ([repas, totaux, objectifs, pesees, eauMl, objectifEauMl, totauxSemaine, journeesSemaine, { pas }]) => {
         setDonnees((avant) => ({
           journee,
           repas,

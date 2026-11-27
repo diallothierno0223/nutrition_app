@@ -12,9 +12,8 @@ import {
   requestPermission,
 } from "react-native-health-connect";
 
-import { listerPesees } from "@/donnees/profil";
+import { ajouterPeseesManquantes, listerPesees } from "@/donnees/profil";
 import { fuseauDuTelephone } from "@/donnees/repas";
-import { supabase } from "@/lib/supabase";
 import { peseesAImporter } from "@noyau";
 
 const PERMISSIONS = [
@@ -22,18 +21,23 @@ const PERMISSIONS = [
   { accessType: "read", recordType: "Weight" },
 ] as const;
 
-/** Nombre de jours de mesures de poids relus à chaque synchronisation. */
+/** Nombre de jours de mesures de poids relus à chaque import. */
 const JOURS_DE_POIDS = 30;
+/** L'import automatique (au chargement du Dashboard) a lieu au plus une fois par heure. */
+const INTERVALLE_D_IMPORT_MS = 60 * 60 * 1000;
 
 export type EtatDeSante = "indisponible" | "a_autoriser" | "autorise";
 
 let initialise: Promise<boolean> | null = null;
+let dernierImport = 0;
 
 async function pret(): Promise<boolean> {
   if (Platform.OS !== "android") return false;
   if ((await getSdkStatus()) !== SdkAvailabilityStatus.SDK_AVAILABLE) return false;
   initialise ??= initialize();
-  return initialise;
+  const ok = await initialise.catch(() => false);
+  if (!ok) initialise = null; // un échec d'initialisation sera retenté au prochain appel
+  return ok;
 }
 
 export async function etatDeSante(): Promise<EtatDeSante> {
@@ -56,9 +60,8 @@ export async function autoriserSante(): Promise<EtatDeSante> {
 
 export { openHealthConnectSettings as ouvrirReglagesHealthConnect };
 
-/** Les pas depuis minuit (heure du téléphone) ; null si Health Connect n'est pas autorisé. */
-export async function pasDuJour(maintenant = new Date()): Promise<number | null> {
-  if ((await etatDeSante()) !== "autorise") return null;
+/** Les pas depuis minuit (heure du téléphone). */
+async function compterLesPas(maintenant: Date): Promise<number> {
   const minuit = new Date(maintenant);
   minuit.setHours(0, 0, 0, 0);
   const resultat = await aggregateRecord({
@@ -68,12 +71,8 @@ export async function pasDuJour(maintenant = new Date()): Promise<number | null>
   return resultat.COUNT_TOTAL;
 }
 
-/**
- * Importe en Pesées les mesures de poids des 30 derniers jours, sans doublon (noyau métier) ; renvoie le nombre de
- * Pesées créées. Sans autorisation, ne fait rien.
- */
-export async function importerPesees(maintenant = new Date()): Promise<number> {
-  if ((await etatDeSante()) !== "autorise") return 0;
+/** Importe en Pesées les mesures de poids des 30 derniers jours, sans doublon (noyau métier). */
+async function importer(maintenant: Date): Promise<number> {
   const debut = new Date(maintenant.getTime() - JOURS_DE_POIDS * 24 * 60 * 60 * 1000);
   const [{ records }, existantes] = await Promise.all([
     readRecords("Weight", {
@@ -83,14 +82,28 @@ export async function importerPesees(maintenant = new Date()): Promise<number> {
   ]);
   const nouvelles = peseesAImporter(
     records.map((r) => ({ instant: r.time, kg: r.weight.inKilograms })),
-    existantes,
+    existantes.map((p) => ({ journee: p.pese_le, kg: p.poids_kg })),
     fuseauDuTelephone(),
   );
-  if (nouvelles.length === 0) return 0;
-  // ignoreDuplicates : si une Pesée du même jour a été saisie entre-temps, elle est gardée.
-  const { error } = await supabase
-    .from("pesees")
-    .upsert(nouvelles, { onConflict: "user_id,pese_le", ignoreDuplicates: true });
-  if (error) throw error;
-  return nouvelles.length;
+  return ajouterPeseesManquantes(nouvelles.map((p) => ({ pese_le: p.journee, poids_kg: p.kg })));
+}
+
+/** Import à la demande (Réglages) : nombre de Pesées réellement ajoutées. */
+export async function importerPesees(maintenant = new Date()): Promise<number> {
+  if ((await etatDeSante()) !== "autorise") return 0;
+  dernierImport = maintenant.getTime();
+  return importer(maintenant);
+}
+
+/**
+ * Au chargement du Dashboard : pas du jour (null sans autorisation) et import des Pesées au plus une fois par heure.
+ * Un seul contrôle de l'état de Health Connect pour les deux.
+ */
+export async function synchroniserSante(maintenant = new Date()): Promise<{ pas: number | null }> {
+  if ((await etatDeSante()) !== "autorise") return { pas: null };
+  if (maintenant.getTime() - dernierImport >= INTERVALLE_D_IMPORT_MS) {
+    dernierImport = maintenant.getTime();
+    await importer(maintenant).catch((e) => console.warn("Pesées non importées :", e instanceof Error ? e.message : e));
+  }
+  return { pas: await compterLesPas(maintenant) };
 }

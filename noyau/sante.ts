@@ -3,7 +3,8 @@
 import { journeeDe } from "./journee.ts";
 
 export type MesureDePoids = { instant: string; kg: number };
-export type PeseeAImporter = { pese_le: string; poids_kg: number };
+/** Une Pesée à créer : sa Journée et le poids en kg. */
+export type PeseeAImporter = { journee: string; kg: number };
 
 export const POIDS_MIN_KG = 20;
 export const POIDS_MAX_KG = 400;
@@ -17,7 +18,7 @@ export function peseesAImporter(
   existantes: readonly PeseeAImporter[],
   fuseau: string,
 ): PeseeAImporter[] {
-  const dejaPesees = new Set(existantes.map((p) => p.pese_le));
+  const dejaPesees = new Set(existantes.map((p) => p.journee));
   const derniereDuJour = new Map<string, MesureDePoids>();
   for (const mesure of mesures) {
     if (mesure.kg < POIDS_MIN_KG || mesure.kg > POIDS_MAX_KG) continue;
@@ -28,5 +29,5 @@ export function peseesAImporter(
   return [...derniereDuJour.entries()]
     .filter(([journee]) => !dejaPesees.has(journee))
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([journee, mesure]) => ({ pese_le: journee, poids_kg: Math.round(mesure.kg * 10) / 10 }));
+    .map(([journee, mesure]) => ({ journee, kg: Math.round(mesure.kg * 10) / 10 }));
 }

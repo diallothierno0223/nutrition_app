@@ -4,8 +4,10 @@ import { useEffect } from "react";
 import { useColorScheme } from "react-native";
 
 import { FournisseurSession, useSession } from "@/auth/session";
+import { configurerNotifications } from "@/notifications/programmation";
 
 SplashScreen.preventAutoHideAsync();
+configurerNotifications();
 
 function Navigation() {
   const { session, chargement } = useSession();

@@ -81,8 +81,16 @@ La proposition d'Objectifs journaliers faite par l'IA à partir du Profil, des O
 _À éviter_ : Calcul des objectifs, recommandation
 
 **Pesée** :
-Une mesure datée du poids de l'utilisateur. Le poids du Profil est celui de la dernière Pesée.
+Une mesure datée du poids de l'utilisateur, une par Journée. Le poids du Profil est celui de la dernière Pesée. Une mesure lue dans Health Connect devient une Pesée seulement si la Journée n'en a pas déjà une (la Pesée existante, saisie à la main ou déjà importée, n'est jamais remplacée).
 _À éviter_ : Mesure, relevé
+
+**Pas du jour** :
+Le nombre de pas depuis minuit, lu dans Health Connect et seulement affiché : l'activité n'ajuste jamais les Objectifs journaliers.
+_À éviter_ : Activité (trop large), calories dépensées
+
+**Notification du soir** :
+Le rappel avant le dîner, avec ce qui reste dans les Plafonds et Plages, les Cibles à compléter et l'eau qui manque, recalculé après chaque Repas ou ajout d'eau.
+_À éviter_ : Alerte, rappel du soir
 
 **Objectif de poids** :
 La variation de poids visée et son échéance (par exemple +2 kg en 6 mois), chiffrée pour la courbe de poids. Elle complète les Objectifs personnels.

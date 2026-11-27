@@ -8,7 +8,7 @@ import { Spacing } from "@/constants/theme";
 import { enregistrerPesee, supprimerPesee, type Pesee } from "@/donnees/profil";
 import { fuseauDuTelephone } from "@/donnees/repas";
 import { lireNombre } from "@/lib/saisie";
-import { estUneJourneeValide, journeeDe } from "@noyau";
+import { POIDS_MAX_KG, POIDS_MIN_KG, estUneJourneeValide, journeeDe } from "@noyau";
 
 /** Ajout d'une Pesée (une par date) et liste des dernières, supprimables. */
 export function SectionPesees({ pesees, onChange }: { pesees: Pesee[]; onChange: () => void }) {
@@ -18,7 +18,9 @@ export function SectionPesees({ pesees, onChange }: { pesees: Pesee[]; onChange:
 
   async function ajouter() {
     const valeur = lireNombre(poids);
-    if (valeur == null || valeur < 20 || valeur > 400) return setMessage("Poids entre 20 et 400 kg.");
+    if (valeur == null || valeur < POIDS_MIN_KG || valeur > POIDS_MAX_KG) {
+      return setMessage(`Poids entre ${POIDS_MIN_KG} et ${POIDS_MAX_KG} kg.`);
+    }
     if (!estUneJourneeValide(date)) return setMessage("Date au format AAAA-MM-JJ.");
     try {
       await enregistrerPesee(date, valeur);

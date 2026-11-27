@@ -5,12 +5,9 @@ import { Bouton } from "@/components/bouton";
 import { Champ } from "@/components/champ";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
+import { chargerReglagesDesNotifications, enregistrerReglagesDesNotifications } from "@/donnees/reglages";
 import { useEnvoi } from "@/hooks/use-envoi";
-import {
-  chargerReglagesDesNotifications,
-  enregistrerReglagesDesNotifications,
-  rafraichirNotifications,
-} from "@/notifications/programmation";
+import { rafraichirNotifications } from "@/notifications/programmation";
 import {
   TYPES_DE_NOTIFICATION,
   estUneHeureValide,
@@ -36,7 +33,8 @@ export function ReglagesDesNotifications() {
     if (!reglages || !valides) return;
     setMessage(null);
     if (await envoyer(() => enregistrerReglagesDesNotifications(reglages))) {
-      await rafraichirNotifications();
+      // Enregistrer ses réglages vaut accord : la permission est redemandée si elle avait été refusée.
+      await rafraichirNotifications(undefined, { demander: true });
       setMessage("Notifications reprogrammées.");
     }
   }

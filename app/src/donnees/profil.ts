@@ -90,3 +90,17 @@ export async function datesDeModification(): Promise<{ objectifs: string | null;
     sources: [profil.data?.modifie_le ?? null, regles.data?.modifie_le ?? null],
   };
 }
+
+/**
+ * Ajoute des Pesées (import Health Connect) sans jamais remplacer celle d'une Journée déjà pesée, même saisie
+ * entre-temps. Renvoie le nombre de Pesées réellement ajoutées.
+ */
+export async function ajouterPeseesManquantes(pesees: { pese_le: string; poids_kg: number }[]): Promise<number> {
+  if (pesees.length === 0) return 0;
+  const { data, error } = await supabase
+    .from("pesees")
+    .upsert(pesees, { onConflict: "user_id,pese_le", ignoreDuplicates: true })
+    .select("id");
+  if (error) throw error;
+  return data.length;
+}
