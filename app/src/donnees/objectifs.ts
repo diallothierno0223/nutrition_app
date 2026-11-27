@@ -30,3 +30,21 @@ export async function totauxDuJour(journee: string): Promise<ValeursNutritionnel
   if (error) throw error;
   return (data as ValeursNutritionnelles | null) ?? RIEN_CONSOMME;
 }
+
+export type TotauxDUneJournee = ValeursNutritionnelles & { journee: string };
+
+/** Les totaux de chaque Journée renseignée (au moins un Repas analysé) entre deux dates incluses ; sans début, depuis toujours. */
+export async function totauxDesJournees(debut: string | null, fin: string): Promise<TotauxDUneJournee[]> {
+  let requete = supabase.from("totaux_du_jour").select(`journee, ${COLONNES}`).lte("journee", fin);
+  if (debut) requete = requete.gte("journee", debut);
+  const { data, error } = await requete.order("journee");
+  if (error) throw error;
+  return data as unknown as TotauxDUneJournee[];
+}
+
+/** Les totaux de la Semaine qui commence ce lundi (vue SQL). */
+export async function totauxDeLaSemaine(lundi: string): Promise<ValeursNutritionnelles> {
+  const { data, error } = await supabase.from("totaux_de_la_semaine").select(COLONNES).eq("lundi", lundi).maybeSingle();
+  if (error) throw error;
+  return (data as ValeursNutritionnelles | null) ?? RIEN_CONSOMME;
+}

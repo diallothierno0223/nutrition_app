@@ -9,29 +9,44 @@ import { CourbeDePoids } from "@/components/courbe-de-poids";
 import { Ecran } from "@/components/ecran";
 import { ThemedText } from "@/components/themed-text";
 import { Jauges } from "@/components/jauges";
+import { MoyenneGlobale } from "@/components/moyenne-globale";
+import { RecapSemaine } from "@/components/recap-semaine";
 import { formaterValeur } from "@/components/valeurs-nutritionnelles";
 import { Spacing } from "@/constants/theme";
 import { chargerObjectifEau, eauDuJour } from "@/donnees/hydratation";
-import { chargerObjectifs, totauxDuJour } from "@/donnees/objectifs";
+import {
+  chargerObjectifs,
+  totauxDeLaSemaine,
+  totauxDesJournees,
+  totauxDuJour,
+  type TotauxDUneJournee,
+} from "@/donnees/objectifs";
 import { listerPesees, type Pesee } from "@/donnees/profil";
 import { fuseauDuTelephone, repasDeLaJournee, type RepasDetaille } from "@/donnees/repas";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 import {
   journeeDe,
+  journeesDeLaSemaine,
   libelleDuTypeDeRepas,
+  lundiDe,
   totauxDuRepas,
   type ObjectifsJournaliers,
   type ValeursNutritionnelles,
 } from "@noyau";
 
 type DonneesDuJour = {
+  journee: string;
   repas: RepasDetaille[];
   totaux: ValeursNutritionnelles;
   objectifs: ObjectifsJournaliers;
   pesees: Pesee[];
   eauMl: number;
   objectifEauMl: number | null;
+  totauxSemaine: ValeursNutritionnelles;
+  journeesSemaine: TotauxDUneJournee[];
+  /** Incrémenté à chaque chargement, pour que la moyenne globale se recalcule aussi. */
+  chargement: number;
 };
 
 export default function Dashboard() {
@@ -43,6 +58,7 @@ export default function Dashboard() {
   // Rechargé à chaque retour sur l'onglet (et après un ajout d'eau) : les jauges suivent la Journée.
   const charger = useCallback(() => {
     const journee = journeeDe(new Date(), fuseauDuTelephone());
+    const semaine = journeesDeLaSemaine(journee);
     Promise.all([
       repasDeLaJournee(journee),
       totauxDuJour(journee),
@@ -50,9 +66,22 @@ export default function Dashboard() {
       listerPesees(14),
       eauDuJour(journee),
       chargerObjectifEau(),
+      totauxDeLaSemaine(lundiDe(journee)),
+      totauxDesJournees(semaine[0] ?? journee, semaine[6] ?? journee),
     ]).then(
-      ([repas, totaux, objectifs, pesees, eauMl, objectifEauMl]) => {
-        setDonnees({ repas, totaux, objectifs, pesees, eauMl, objectifEauMl });
+      ([repas, totaux, objectifs, pesees, eauMl, objectifEauMl, totauxSemaine, journeesSemaine]) => {
+        setDonnees((avant) => ({
+          journee,
+          repas,
+          totaux,
+          objectifs,
+          pesees,
+          eauMl,
+          objectifEauMl,
+          totauxSemaine,
+          journeesSemaine,
+          chargement: (avant?.chargement ?? 0) + 1,
+        }));
         setErreur(false);
       },
       () => setErreur(true),
@@ -74,6 +103,18 @@ export default function Dashboard() {
           objectifMl={donnees.objectifEauMl}
           onChange={charger}
         />
+      )}
+
+      {donnees && (
+        <RecapSemaine
+          aujourdhui={donnees.journee}
+          totauxSemaine={donnees.totauxSemaine}
+          journees={donnees.journeesSemaine}
+          objectifs={donnees.objectifs}
+        />
+      )}
+      {donnees && (
+        <MoyenneGlobale aujourdhui={donnees.journee} objectifs={donnees.objectifs} rafraichissement={donnees.chargement} />
       )}
 
       <ThemedText type="smallBold">Poids</ThemedText>

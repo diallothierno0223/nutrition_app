@@ -7,3 +7,4 @@ export * from "./analyse.ts";
 export * from "./jauges.ts";
 export * from "./regles.ts";
 export * from "./profil.ts";
+export * from "./semaine.ts";
