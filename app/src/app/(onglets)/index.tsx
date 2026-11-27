@@ -25,6 +25,8 @@ import { listerPesees, type Pesee } from "@/donnees/profil";
 import { fuseauDuTelephone, repasDeLaJournee, type RepasDetaille } from "@/donnees/repas";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
+import { rafraichirNotifications } from "@/notifications/programmation";
+import { importerPesees, pasDuJour } from "@/sante/health-connect";
 import {
   journeeDe,
   journeesDeLaSemaine,
@@ -45,6 +47,8 @@ type DonneesDuJour = {
   objectifEauMl: number | null;
   totauxSemaine: ValeursNutritionnelles;
   journeesSemaine: TotauxDUneJournee[];
+  /** Pas du jour lus dans Health Connect ; null sans autorisation (ou sans Health Connect). */
+  pas: number | null;
   /** Incrémenté à chaque chargement, pour que la moyenne globale se recalcule aussi. */
   chargement: number;
 };
@@ -63,13 +67,17 @@ export default function Dashboard() {
       repasDeLaJournee(journee),
       totauxDuJour(journee),
       chargerObjectifs(),
-      listerPesees(14),
+      // Les nouvelles mesures de poids de Health Connect deviennent des Pesées avant d'afficher la courbe.
+      importerPesees()
+        .catch(() => 0)
+        .then(() => listerPesees(14)),
       eauDuJour(journee),
       chargerObjectifEau(),
       totauxDeLaSemaine(lundiDe(journee)),
       totauxDesJournees(semaine[0] ?? journee, semaine[6] ?? journee),
+      pasDuJour().catch(() => null),
     ]).then(
-      ([repas, totaux, objectifs, pesees, eauMl, objectifEauMl, totauxSemaine, journeesSemaine]) => {
+      ([repas, totaux, objectifs, pesees, eauMl, objectifEauMl, totauxSemaine, journeesSemaine, pas]) => {
         setDonnees((avant) => ({
           journee,
           repas,
@@ -80,9 +88,12 @@ export default function Dashboard() {
           objectifEauMl,
           totauxSemaine,
           journeesSemaine,
+          pas,
           chargement: (avant?.chargement ?? 0) + 1,
         }));
         setErreur(false);
+        // Chiffres à jour pour la notification du soir (après un Repas, un ajout d'eau ou au retour dans l'app).
+        rafraichirNotifications({ totaux, objectifs, eauMl, objectifEauMl });
       },
       () => setErreur(true),
     );
@@ -117,6 +128,12 @@ export default function Dashboard() {
         <MoyenneGlobale aujourdhui={donnees.journee} objectifs={donnees.objectifs} rafraichissement={donnees.chargement} />
       )}
 
+      {donnees?.pas != null && (
+        <ThemedText type="smallBold">
+          Pas du jour : {donnees.pas.toLocaleString("fr-FR")}
+        </ThemedText>
+      )}
+
       <ThemedText type="smallBold">Poids</ThemedText>
       {donnees && <CourbeDePoids pesees={donnees.pesees} />}
 
@@ -142,6 +159,7 @@ export default function Dashboard() {
       <ThemedText type="small" themeColor="textSecondary">
         Connecté : {session?.user.email}
       </ThemedText>
+      <Bouton libelle="Réglages" variante="secondaire" onPress={() => router.push("/reglages")} />
       <Bouton libelle="Se déconnecter" variante="secondaire" onPress={() => supabase.auth.signOut()} />
     </Ecran>
   );

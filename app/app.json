@@ -18,7 +18,8 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": ["android.permission.health.READ_STEPS", "android.permission.health.READ_WEIGHT"]
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
@@ -40,7 +41,15 @@
           "cameraPermission": "La caméra sert à photographier tes repas pour les analyser.",
           "photosPermission": "La galerie sert à choisir la photo d'un repas à analyser."
         }
-      ]
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": { "minSdkVersion": 26 }
+        }
+      ],
+      "react-native-health-connect",
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true,

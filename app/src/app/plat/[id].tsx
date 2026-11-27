@@ -21,6 +21,7 @@ import {
   type PlatDetaille,
 } from "@/donnees/plats";
 import { useEnvoi } from "@/hooks/use-envoi";
+import { rafraichirNotifications } from "@/notifications/programmation";
 import { appliquerCoefficient, totauxDuRepas } from "@noyau";
 
 const COEFFICIENTS = ["0.5", "1", "1.5", "2"] as const;
@@ -53,6 +54,7 @@ export default function DetailPlat() {
   async function enregistrerLeRepas() {
     let repasId = "";
     if (await reutilisation.envoyer(async () => (repasId = await reutiliserPlat(courant, Number(coefficient), precision)))) {
+      rafraichirNotifications();
       router.replace({ pathname: "/repas/[id]", params: { id: repasId } });
     }
   }

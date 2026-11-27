@@ -4,9 +4,13 @@
 
 **Blocked by:** 04
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Programmation locale des 4 notifications aux heures par défaut.
-- [ ] Réglages : heure modifiable et désactivation par notification.
-- [ ] La notification du soir est reprogrammée après chaque Repas ou ajout d'eau, avec des chiffres à jour (contenu calculé par le noyau métier, testé).
-- [ ] Texte neutre pour le samedi (« Ton Rendez-vous du samedi t'attend »).
+- [x] Programmation locale des 4 notifications aux heures par défaut.
+- [x] Réglages : heure modifiable et désactivation par notification.
+- [x] La notification du soir est reprogrammée après chaque Repas ou ajout d'eau, avec des chiffres à jour (contenu calculé par le noyau métier, testé).
+- [x] Texte neutre pour le samedi (« Ton Rendez-vous du samedi t'attend »).
+
+## Avancement
+
+Fait (non vérifié sur le téléphone ; demande la nouvelle build EAS). `expo-notifications`, canal Android « Rappels ». Matin et midi : quotidiennes ; samedi : hebdomadaire ; soir : celle du jour avec les chiffres du moment (quotas restants des Plafonds et Plages, Cibles à compléter, Plafonds dépassés, eau qui manque ; contenu calculé et testé dans le noyau), et un rappel sans chiffres pour les 6 soirs suivants, remplacé dès que l'app est rouverte. Tout est reprogrammé au chargement du Dashboard (donc après chaque ajout d'eau), après une saisie de Repas, la réutilisation d'un Plat et chaque correction d'un Repas. Réglages (heure, activation) dans le nouvel écran Réglages (bouton en bas du Dashboard), enregistrés dans `reglages.notifications`.

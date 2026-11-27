@@ -12,6 +12,7 @@ import { Spacing } from "@/constants/theme";
 import type { PhotoChoisie } from "@/donnees/photos";
 import { listerPlats, listerPlatsDeLaSemaine, type Plat } from "@/donnees/plats";
 import { saisirRepas } from "@/donnees/repas";
+import { rafraichirNotifications } from "@/notifications/programmation";
 import { useTheme } from "@/hooks/use-theme";
 
 const SOURCES = {
@@ -64,6 +65,7 @@ export default function Saisie() {
       const repasId = await saisirRepas(description, photo);
       setDescription("");
       setPhoto(null);
+      rafraichirNotifications();
       router.push({ pathname: "/repas/[id]", params: { id: repasId } });
     } catch {
       setErreur("Le Repas n'a pas pu être enregistré. Vérifie ta connexion.");

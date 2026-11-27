@@ -10,3 +10,5 @@ export * from "./profil.ts";
 export * from "./semaine.ts";
 export * from "./samedi.ts";
 export * from "./courses.ts";
+export * from "./notifications.ts";
+export * from "./sante.ts";

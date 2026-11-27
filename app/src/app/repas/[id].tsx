@@ -21,6 +21,7 @@ import {
   supprimerRepas,
   type RepasDetaille,
 } from "@/donnees/repas";
+import { rafraichirNotifications } from "@/notifications/programmation";
 import { libelleDuTypeDeRepas, totauxDuRepas } from "@noyau";
 
 export default function DetailRepas() {
@@ -32,12 +33,19 @@ export default function DetailRepas() {
   const [adressePhoto, setAdressePhoto] = useState<string | null>(null);
 
   // Un échec de rechargement (réseau) garde le Repas affiché au lieu de le dire introuvable.
+  // Chaque rechargement suit une correction (ou l'arrivée sur l'écran) : la notification du soir est remise à jour.
   const charger = useCallback(
     () =>
-      chargerRepas(id).then(setRepas, () => {
-        setRepas((actuel) => actuel ?? null);
-        setMessage("Impossible de recharger le Repas. Vérifie ta connexion.");
-      }),
+      chargerRepas(id).then(
+        (lu) => {
+          setRepas(lu);
+          rafraichirNotifications();
+        },
+        () => {
+          setRepas((actuel) => actuel ?? null);
+          setMessage("Impossible de recharger le Repas. Vérifie ta connexion.");
+        },
+      ),
     [id],
   );
   useEffect(() => {
