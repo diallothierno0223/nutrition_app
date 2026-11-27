@@ -19,7 +19,7 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["android.permission.health.READ_STEPS", "android.permission.health.READ_WEIGHT", "android.permission.SCHEDULE_EXACT_ALARM"]
+      "permissions": ["android.permission.health.READ_STEPS", "android.permission.health.READ_WEIGHT", "android.permission.SCHEDULE_EXACT_ALARM", "android.permission.USE_EXACT_ALARM"]
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
