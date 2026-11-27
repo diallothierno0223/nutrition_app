@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { StyleSheet, Switch, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { Bouton } from "@/components/bouton";
+import { Carte } from "@/components/carte";
 import { ChampHeure } from "@/components/champ-date-heure";
+import { Interrupteur } from "@/components/interrupteur";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { chargerReglagesDesNotifications, enregistrerReglagesDesNotifications } from "@/donnees/reglages";
@@ -62,51 +64,54 @@ export function ReglagesDesNotifications() {
   }
 
   return (
-    <View style={styles.bloc}>
-      <ThemedText type="smallBold">Notifications</ThemedText>
-      {TYPES_DE_NOTIFICATION.map((type) => (
-        <View key={type} style={styles.ligne}>
-          <ThemedText type="small" style={styles.libelle}>
-            {libelleDeNotification(type)}
+    <>
+      <Carte titre="Rappels" detail="Heure et activation de chaque notification">
+        {TYPES_DE_NOTIFICATION.map((type) => (
+          <View key={type} style={styles.ligne}>
+            <ThemedText type="small" style={styles.libelle}>
+              {libelleDeNotification(type)}
+            </ThemedText>
+            <ChampHeure
+              style={styles.heure}
+              placeholder="Heure"
+              valeur={reglages[type].heure}
+              desactive={!reglages[type].active}
+              onChange={(heure) => setReglages({ ...reglages, [type]: { ...reglages[type], heure } })}
+            />
+            <Interrupteur
+              value={reglages[type].active}
+              accessibilityLabel={`Activer : ${libelleDeNotification(type)}`}
+              onValueChange={(active) => setReglages({ ...reglages, [type]: { ...reglages[type], active } })}
+            />
+          </View>
+        ))}
+        {(erreur ?? message) && <ThemedText themeColor="textSecondary">{erreur ?? message}</ThemedText>}
+        <Bouton libelle="Enregistrer les notifications" onPress={enregistrer} enCours={envoi} />
+      </Carte>
+
+      <Carte titre="Vérification" detail="Si une notification n'arrive pas : l'état, et des tests">
+        {etat && (
+          <ThemedText type="small" themeColor="textSecondary">
+            {etat.autorisees ? "Permission accordée" : "Permission refusée"} · {etat.programmees} programmée(s)
+            {etat.prochaine ? ` · prochaine ${etat.prochaine.toLocaleString("fr-FR", { weekday: "long", hour: "2-digit", minute: "2-digit" })}` : ""}
+            {etat.exactes ? "" : " · heure approximative (alarmes exactes non autorisées)"}
           </ThemedText>
-          <ChampHeure
-            style={styles.heure}
-            placeholder="Heure"
-            valeur={reglages[type].heure}
-            desactive={!reglages[type].active}
-            onChange={(heure) => setReglages({ ...reglages, [type]: { ...reglages[type], heure } })}
+        )}
+        <View style={styles.ligne}>
+          <Bouton libelle="Test dans 10 s" variante="secondaire" onPress={() => tester(10, "Notification de test dans 10 secondes.")} />
+          <Bouton
+            libelle="Test dans 2 min"
+            variante="secondaire"
+            onPress={() => tester(120, "Notification de test dans 2 minutes : ferme l'app (balaye-la des apps récentes) et attends.")}
           />
-          <Switch
-            value={reglages[type].active}
-            accessibilityLabel={`Activer : ${libelleDeNotification(type)}`}
-            onValueChange={(active) => setReglages({ ...reglages, [type]: { ...reglages[type], active } })}
-          />
+          {etat && !etat.exactes && <Bouton libelle="Autoriser l'heure exacte" variante="secondaire" onPress={heureExacte} />}
         </View>
-      ))}
-      {(erreur ?? message) && <ThemedText themeColor="textSecondary">{erreur ?? message}</ThemedText>}
-      <Bouton libelle="Enregistrer les notifications" variante="secondaire" onPress={enregistrer} enCours={envoi} />
-      {etat && (
-        <ThemedText type="small" themeColor="textSecondary">
-          {etat.autorisees ? "Permission accordée" : "Permission refusée"} · {etat.programmees} programmée(s)
-          {etat.prochaine ? ` · prochaine ${etat.prochaine.toLocaleString("fr-FR", { weekday: "long", hour: "2-digit", minute: "2-digit" })}` : ""}
-          {etat.exactes ? "" : " · heure approximative (alarmes exactes non autorisées)"}
-        </ThemedText>
-      )}
-      <View style={styles.ligne}>
-        <Bouton libelle="Test dans 10 s" variante="secondaire" onPress={() => tester(10, "Notification de test dans 10 secondes.")} />
-        <Bouton
-          libelle="Test dans 2 min"
-          variante="secondaire"
-          onPress={() => tester(120, "Notification de test dans 2 minutes : ferme l'app (balaye-la des apps récentes) et attends.")}
-        />
-        {etat && !etat.exactes && <Bouton libelle="Autoriser l'heure exacte" variante="secondaire" onPress={heureExacte} />}
-      </View>
-    </View>
+      </Carte>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  bloc: { gap: Spacing.two },
   ligne: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: Spacing.two },
   libelle: { flex: 1 },
   heure: { width: 100 },

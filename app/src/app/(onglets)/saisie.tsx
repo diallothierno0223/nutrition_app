@@ -2,18 +2,19 @@ import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { StyleSheet, TextInput, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { Bouton } from "@/components/bouton";
+import { Carte } from "@/components/carte";
+import { Champ } from "@/components/champ";
 import { Ecran } from "@/components/ecran";
 import { ListeDePlats } from "@/components/liste-de-plats";
 import { ThemedText } from "@/components/themed-text";
-import { Spacing } from "@/constants/theme";
+import { Rayons, Spacing } from "@/constants/theme";
 import type { PhotoChoisie } from "@/donnees/photos";
 import { listerPlats, listerPlatsDeLaSemaine, type Plat } from "@/donnees/plats";
 import { saisirRepas } from "@/donnees/repas";
 import { rafraichirNotifications } from "@/notifications/programmation";
-import { useTheme } from "@/hooks/use-theme";
 
 const SOURCES = {
   camera: {
@@ -30,7 +31,6 @@ const SOURCES = {
 type SourcePhoto = keyof typeof SOURCES;
 
 export default function Saisie() {
-  const theme = useTheme();
   const [description, setDescription] = useState("");
   const [photo, setPhoto] = useState<PhotoChoisie | null>(null);
   const [envoi, setEnvoi] = useState(false);
@@ -75,51 +75,52 @@ export default function Saisie() {
   }
 
   return (
-    <Ecran titre="Saisie rapide">
-      <ListeDePlats titre="Plats de la semaine" plats={platsDeLaSemaine} />
+    <Ecran titre="Saisie">
+      <Carte
+        titre="Nouveau Repas"
+        detail={
+          photo
+            ? "Ajoute une note si tu veux : huile, cuisson, sauce, quantité."
+            : "Décris-le (plats, quantités, huile ou sauce), ou prends-le en photo : l'IA l'analyse."
+        }>
+        {photo ? (
+          <View style={styles.photo}>
+            <Image source={{ uri: photo.uri }} style={styles.apercu} contentFit="cover" />
+            <Bouton libelle="Retirer la photo" variante="discret" onPress={() => setPhoto(null)} desactive={envoi} />
+          </View>
+        ) : (
+          <View style={styles.actions}>
+            <Bouton libelle="Prendre une photo" variante="secondaire" onPress={() => choisirPhoto("camera")} />
+            <Bouton libelle="Choisir dans la galerie" variante="secondaire" onPress={() => choisirPhoto("galerie")} />
+          </View>
+        )}
+
+        <Champ
+          libelle={photo ? "Note" : "Description"}
+          placeholder={
+            photo ? "Ex. : cuit à l'huile de palme, sauce à part" : "Ex. : une louche de mafé au poulet avec un bol de riz, une banane"
+          }
+          multiline
+          value={description}
+          onChangeText={setDescription}
+        />
+        {erreur && <ThemedText themeColor="textSecondary">{erreur}</ThemedText>}
+        <Bouton
+          libelle="Analyser et enregistrer"
+          onPress={enregistrer}
+          desactive={!photo && !description.trim()}
+          enCours={envoi}
+        />
+      </Carte>
+
+      <ListeDePlats titre="Plats de la semaine" detail="Du Rendez-vous du samedi, pour une portion" plats={platsDeLaSemaine} />
       <ListeDePlats titre="Mes Plats" plats={plats} />
-      <ThemedText themeColor="textSecondary">
-        {photo
-          ? "Ajoute une note si tu veux : huile, cuisson, sauce, quantité."
-          : "Décris ton repas (plats, quantités approximatives, huile ou sauce), ou prends-le en photo."}
-      </ThemedText>
-
-      {photo ? (
-        <View style={styles.photo}>
-          <Image source={{ uri: photo.uri }} style={styles.apercu} contentFit="cover" />
-          <Bouton libelle="Retirer la photo" variante="discret" onPress={() => setPhoto(null)} desactive={envoi} />
-        </View>
-      ) : (
-        <View style={styles.actions}>
-          <Bouton libelle="Prendre une photo" variante="secondaire" onPress={() => choisirPhoto("camera")} />
-          <Bouton libelle="Galerie" variante="secondaire" onPress={() => choisirPhoto("galerie")} />
-        </View>
-      )}
-
-      <TextInput
-        style={[styles.champ, { color: theme.text, backgroundColor: theme.backgroundElement }]}
-        placeholder={
-          photo ? "Ex. : cuit à l'huile de palme, sauce à part" : "Ex. : une louche de mafé au poulet avec un bol de riz, une banane"
-        }
-        placeholderTextColor={theme.textSecondary}
-        multiline
-        value={description}
-        onChangeText={setDescription}
-      />
-      {erreur && <ThemedText themeColor="textSecondary">{erreur}</ThemedText>}
-      <Bouton
-        libelle="Analyser et enregistrer"
-        onPress={enregistrer}
-        desactive={!photo && !description.trim()}
-        enCours={envoi}
-      />
     </Ecran>
   );
 }
 
 const styles = StyleSheet.create({
-  champ: { borderRadius: 12, padding: Spacing.three, fontSize: 16, minHeight: 120, textAlignVertical: "top" },
   actions: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.two },
   photo: { gap: Spacing.two },
-  apercu: { width: "100%", aspectRatio: 4 / 3, borderRadius: 12 },
+  apercu: { width: "100%", aspectRatio: 4 / 3, borderRadius: Rayons.petit },
 });

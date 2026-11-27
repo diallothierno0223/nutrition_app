@@ -2,6 +2,7 @@ import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { Bouton } from "@/components/bouton";
+import { LibelleDeChamp } from "@/components/champ";
 import { ChampDate, ChampHeure } from "@/components/champ-date-heure";
 import { Puces } from "@/components/puces";
 import { ThemedText } from "@/components/themed-text";
@@ -64,11 +65,11 @@ export function MomentDuRepas({ repas, onChange }: { repas: Repas; onChange: () 
 
   return (
     <View style={styles.bloc}>
-      <ThemedText type="smallBold">Moment du Repas</ThemedText>
       <View style={styles.ligne}>
-        <ChampDate style={styles.champ} placeholder="Date" valeur={date} onChange={setDate} max={aujourdhui} />
-        <ChampHeure style={styles.champ} placeholder="Heure" valeur={heure} onChange={setHeure} />
+        <ChampDate style={styles.champ} libelle="Date" placeholder="Choisir" valeur={date} onChange={setDate} max={aujourdhui} />
+        <ChampHeure style={styles.champ} libelle="Heure" placeholder="Choisir" valeur={heure} onChange={setHeure} />
       </View>
+      <LibelleDeChamp>Type de repas</LibelleDeChamp>
       <Puces options={TYPES_DE_REPAS} valeur={type} libelle={libelleDuTypeDeRepas} onChange={setTypeChoisi} />
       {erreur && <ThemedText themeColor="textSecondary">{erreur}</ThemedText>}
       <View style={styles.ligne}>

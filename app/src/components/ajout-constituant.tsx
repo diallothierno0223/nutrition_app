@@ -2,7 +2,7 @@ import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { Bouton } from "@/components/bouton";
-import { Champ } from "@/components/champ";
+import { Champ, LibelleDeChamp } from "@/components/champ";
 import { Puces } from "@/components/puces";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
@@ -60,19 +60,32 @@ export function AjoutConstituant({ repasId, onChange }: { repasId: string; onCha
   return (
     <View style={styles.bloc}>
       <ThemedText type="smallBold">Nouveau Constituant</ThemedText>
-      <ThemedText type="small" themeColor="textSecondary">
+      <ThemedText type="detail">
         Pour laisser l'IA l'estimer, utilise plutôt une précision et relance l'analyse.
       </ThemedText>
-      <Champ placeholder="Nom (ex. : huile d'arachide)" value={nom} onChangeText={setNom} />
-      <Champ placeholder="Quantité" keyboardType="decimal-pad" value={quantite} onChangeText={setQuantite} />
-      <Puces options={UNITES} valeur={unite} libelle={(u) => u} onChange={setUnite} />
-      <Champ placeholder="Équivalent en cuisine (ex. : 1 c. à soupe)" value={equivalent} onChangeText={setEquivalent} />
+      <Champ libelle="Nom" placeholder="ex. huile d'arachide" value={nom} onChangeText={setNom} />
+      <View style={styles.grille}>
+        <Champ
+          style={styles.nutriment}
+          libelle="Quantité"
+          placeholder="ex. 15"
+          keyboardType="decimal-pad"
+          value={quantite}
+          onChangeText={setQuantite}
+        />
+        <View style={[styles.nutriment, styles.unite]}>
+          <LibelleDeChamp>Unité</LibelleDeChamp>
+          <Puces options={UNITES} valeur={unite} libelle={(u) => u} onChange={setUnite} />
+        </View>
+      </View>
+      <Champ libelle="Équivalent en cuisine" placeholder="ex. 1 c. à soupe" value={equivalent} onChangeText={setEquivalent} />
       <View style={styles.grille}>
         {NUTRIMENTS.map((n) => (
           <Champ
             key={n}
             style={styles.nutriment}
-            placeholder={`${libelleDuNutriment(n)} (${uniteDuNutriment(n)})`}
+            libelle={`${libelleDuNutriment(n)} (${uniteDuNutriment(n)})`}
+            placeholder="0"
             keyboardType="decimal-pad"
             value={valeurs[n]}
             onChangeText={(texte) => setValeurs((v) => ({ ...v, [n]: texte }))}
@@ -92,5 +105,6 @@ const styles = StyleSheet.create({
   bloc: { gap: Spacing.two },
   grille: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.two },
   nutriment: { flexBasis: "47%", flexGrow: 1 },
+  unite: { gap: Spacing.one + 2 },
   actions: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.two },
 });

@@ -1,7 +1,7 @@
 import { StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
-import { Spacing } from "@/constants/theme";
+import { Rayons, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import { useEtatDeSynchro } from "@/synchro/synchro";
 
@@ -31,5 +31,5 @@ export function BandeauHorsLigne() {
 }
 
 const styles = StyleSheet.create({
-  bandeau: { borderRadius: 12, paddingVertical: Spacing.two, paddingHorizontal: Spacing.three },
+  bandeau: { borderRadius: Rayons.petit, paddingVertical: Spacing.two, paddingHorizontal: Spacing.three },
 });

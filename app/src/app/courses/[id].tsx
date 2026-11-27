@@ -1,8 +1,10 @@
 import { useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { Bouton } from "@/components/bouton";
+import { Carte } from "@/components/carte";
+import { CaseACocher } from "@/components/case-a-cocher";
 import { Champ } from "@/components/champ";
 import { Ecran } from "@/components/ecran";
 import { PucesMultiples } from "@/components/puces";
@@ -18,13 +20,11 @@ import {
 } from "@/donnees/courses";
 import { chargerRendezVous, type RendezVous } from "@/donnees/samedi";
 import { useEnvoi } from "@/hooks/use-envoi";
-import { useTheme } from "@/hooks/use-theme";
 import { construireListeDeCourses, type AjoutManuel, type LigneDeCourses } from "@noyau";
 
 /** La Liste de courses d'un Rendez-vous : sections par Recette, cases à cocher, ajouts manuels. */
 export default function ListeDeCourses() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const theme = useTheme();
   const [rendezVous, setRendezVous] = useState<RendezVous | null | undefined>(undefined);
   const [ajouts, setAjouts] = useState<AjoutManuel[]>([]);
   const [nouvelArticle, setNouvelArticle] = useState("");
@@ -105,58 +105,56 @@ export default function ListeDeCourses() {
 
   return (
     <Ecran>
-      <ThemedText type="smallBold">Recettes incluses</ThemedText>
-      <PucesMultiples
-        options={ids}
-        choisies={selectionnees}
-        libelle={(rid) => rendezVous.recettes.find((r) => r.id === rid)?.nom ?? ""}
-        onBasculer={basculerRecette}
-      />
-      {erreur && <ThemedText themeColor="textSecondary">{erreur}</ThemedText>}
+      <Carte titre="Recettes incluses" detail="Seules les Recettes choisies remplissent la liste">
+        <PucesMultiples
+          options={ids}
+          choisies={selectionnees}
+          libelle={(rid) => rendezVous.recettes.find((r) => r.id === rid)?.nom ?? ""}
+          onBasculer={basculerRecette}
+        />
+        {erreur && <ThemedText themeColor="textSecondary">{erreur}</ThemedText>}
+      </Carte>
 
       {sections.map((section) => (
-        <View key={section.titre} style={styles.section}>
-          <ThemedText type="smallBold">{section.titre}</ThemedText>
+        <Carte key={section.titre} titre={section.titre}>
           {section.lignes.map((ligne) => (
             <View key={ligne.id} style={styles.ligne}>
-              <Pressable onPress={() => basculerLigne(ligne)} style={styles.case}>
-                <ThemedText style={ligne.coche ? styles.coche : undefined}>
-                  {ligne.coche ? "☑" : "☐"} {ligne.nom}
-                  {ligne.detail ? ` · ${ligne.detail}` : ""}
-                </ThemedText>
-                {ligne.total && (
-                  <ThemedText type="small" themeColor="textSecondary">
-                    {ligne.nom} : {ligne.total}
-                  </ThemedText>
-                )}
-              </Pressable>
+              <CaseACocher
+                libelle={ligne.nom}
+                coche={ligne.coche}
+                onPress={() => basculerLigne(ligne)}
+                detail={
+                  (ligne.detail || ligne.total) && (
+                    <>
+                      {ligne.detail && <ThemedText type="detail">{ligne.detail}</ThemedText>}
+                      {ligne.total && <ThemedText type="detail">Total : {ligne.total}</ThemedText>}
+                    </>
+                  )
+                }
+              />
               {ligne.manuel && (
-                <Pressable
-                  onPress={() => modifier(() => setAjouts((a) => a.filter((x) => x.id !== ligne.id)), () => retirerArticle(ligne.id))}
-                  style={[styles.retirer, { backgroundColor: theme.backgroundElement }]}>
-                  <ThemedText type="small">✕</ThemedText>
-                </Pressable>
+                <Bouton
+                  libelle="Retirer"
+                  variante="discret"
+                  onPress={() =>
+                    modifier(() => setAjouts((a) => a.filter((x) => x.id !== ligne.id)), () => retirerArticle(ligne.id))
+                  }
+                />
               )}
             </View>
           ))}
-        </View>
+        </Carte>
       ))}
 
-      <ThemedText type="smallBold">Ajouter un article</ThemedText>
-      <View style={styles.ligne}>
-        <Champ style={styles.champ} placeholder="Ex. : piment, sel, sacs congélation" value={nouvelArticle} onChangeText={setNouvelArticle} />
+      <Carte titre="Ajouter un article">
+        <Champ placeholder="Ex. : piment, sel, sacs congélation" value={nouvelArticle} onChangeText={setNouvelArticle} />
         <Bouton libelle="Ajouter" variante="secondaire" onPress={ajouter} desactive={!nouvelArticle.trim()} enCours={envoi} />
-      </View>
+      </Carte>
     </Ecran>
   );
 }
 
 
 const styles = StyleSheet.create({
-  section: { gap: Spacing.two },
   ligne: { flexDirection: "row", alignItems: "center", gap: Spacing.two },
-  case: { flex: 1, gap: 2, paddingVertical: Spacing.one },
-  coche: { textDecorationLine: "line-through", opacity: 0.6 },
-  retirer: { borderRadius: 999, paddingHorizontal: Spacing.two, paddingVertical: Spacing.one },
-  champ: { flex: 1 },
 });

@@ -1,15 +1,16 @@
 import { useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, TextInput } from "react-native";
+import { StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { Bouton } from "@/components/bouton";
+import { Carte } from "@/components/carte";
+import { Champ } from "@/components/champ";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Spacing } from "@/constants/theme";
-import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
 
 export default function Connexion() {
-  const theme = useTheme();
   const [email, setEmail] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
@@ -23,38 +24,26 @@ export default function Connexion() {
     setEnvoi(false);
   }
 
-  const champ = [styles.champ, { color: theme.text, backgroundColor: theme.backgroundElement }];
-
   return (
     <ThemedView style={styles.ecran}>
       <SafeAreaView style={styles.contenu}>
-        <ThemedText type="subtitle">Suivi nutritionnel</ThemedText>
-        <TextInput
-          style={champ}
-          placeholder="E-mail"
-          placeholderTextColor={theme.textSecondary}
-          autoCapitalize="none"
-          autoComplete="email"
-          keyboardType="email-address"
-          value={email}
-          onChangeText={setEmail}
-        />
-        <TextInput
-          style={champ}
-          placeholder="Mot de passe"
-          placeholderTextColor={theme.textSecondary}
-          secureTextEntry
-          autoComplete="password"
-          value={motDePasse}
-          onChangeText={setMotDePasse}
-        />
-        {erreur && <ThemedText themeColor="textSecondary">{erreur}</ThemedText>}
-        <Pressable
-          style={[styles.bouton, { backgroundColor: theme.backgroundSelected }]}
-          onPress={seConnecter}
-          disabled={envoi || !email || !motDePasse}>
-          {envoi ? <ActivityIndicator /> : <ThemedText type="smallBold">Se connecter</ThemedText>}
-        </Pressable>
+        <ThemedText type="ecran" accessibilityRole="header">
+          Suivi nutritionnel
+        </ThemedText>
+        <Carte>
+          <Champ
+            libelle="E-mail"
+            placeholder="toi@exemple.fr"
+            autoCapitalize="none"
+            autoComplete="email"
+            keyboardType="email-address"
+            value={email}
+            onChangeText={setEmail}
+          />
+          <Champ libelle="Mot de passe" secureTextEntry autoComplete="password" value={motDePasse} onChangeText={setMotDePasse} />
+          {erreur && <ThemedText themeColor="textSecondary">{erreur}</ThemedText>}
+          <Bouton libelle="Se connecter" onPress={seConnecter} enCours={envoi} desactive={!email || !motDePasse} />
+        </Carte>
       </SafeAreaView>
     </ThemedView>
   );
@@ -63,6 +52,4 @@ export default function Connexion() {
 const styles = StyleSheet.create({
   ecran: { flex: 1 },
   contenu: { flex: 1, justifyContent: "center", padding: Spacing.four, gap: Spacing.three },
-  champ: { borderRadius: 12, padding: Spacing.three, fontSize: 16 },
-  bouton: { borderRadius: 12, padding: Spacing.three, alignItems: "center" },
 });

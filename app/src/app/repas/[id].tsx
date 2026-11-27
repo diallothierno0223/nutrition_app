@@ -5,6 +5,7 @@ import { Alert, StyleSheet } from "react-native";
 
 import { AjoutConstituant } from "@/components/ajout-constituant";
 import { Bouton } from "@/components/bouton";
+import { Carte } from "@/components/carte";
 import { CarteConstituant } from "@/components/carte-constituant";
 import { Champ } from "@/components/champ";
 import { Ecran } from "@/components/ecran";
@@ -12,6 +13,7 @@ import { EnregistrerCommePlat } from "@/components/enregistrer-comme-plat";
 import { MomentDuRepas } from "@/components/moment-du-repas";
 import { ThemedText } from "@/components/themed-text";
 import { ValeursNutritionnelles } from "@/components/valeurs-nutritionnelles";
+import { Rayons } from "@/constants/theme";
 import { adresseDePhoto } from "@/donnees/photos";
 import {
   chargerRepas,
@@ -23,7 +25,7 @@ import {
 } from "@/donnees/repas";
 import { rafraichirNotifications } from "@/notifications/programmation";
 import { surRejeu } from "@/synchro/synchro";
-import { libelleDuTypeDeRepas, totauxDuRepas } from "@noyau";
+import { libelleDHeure, libelleDuTypeDeRepas, totauxDuRepas, versHeure } from "@noyau";
 
 export default function DetailRepas() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -103,7 +105,7 @@ export default function DetailRepas() {
     );
   }
 
-  const heure = new Date(repas.mange_le).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  const heure = libelleDHeure(versHeure(new Date(repas.mange_le)));
 
   // Encore dans la file d'envoi (hors ligne) : rien n'est modifiable avant qu'il soit parti.
   if (repas.enFile) {
@@ -129,62 +131,70 @@ export default function DetailRepas() {
       {repas.description !== "" && <ThemedText>{repas.description}</ThemedText>}
 
       {repas.statut === "en_attente" ? (
-        <ThemedText themeColor="textSecondary">
-          {repas.erreur_analyse ? "L'analyse a échoué." : "Analyse en attente."} Ce Repas n'est pas compté dans les jauges.
-        </ThemedText>
+        <Carte titre="Analyse en attente">
+          <ThemedText themeColor="textSecondary">
+            {repas.erreur_analyse ? "L'analyse a échoué." : "L'analyse n'est pas encore faite."} Ce Repas n'est pas compté
+            dans les jauges.
+          </ThemedText>
+        </Carte>
       ) : (
         <>
-          <ThemedText type="smallBold">Total</ThemedText>
-          <ValeursNutritionnelles valeurs={totauxDuRepas(repas.constituants)} />
+          <Carte titre="Total">
+            <ValeursNutritionnelles valeurs={totauxDuRepas(repas.constituants)} />
+          </Carte>
 
-          <ThemedText type="smallBold">Constituants</ThemedText>
-          {repas.constituants.map((c) => (
-            <CarteConstituant
-              key={c.id}
-              constituant={c}
-              corriger={(corrige) => corrigerConstituant(c.id, corrige)}
-              supprimer={() => supprimerConstituant(c.id)}
-              onChange={charger}
+          <Carte titre="Constituants" detail="Corrige une quantité, un nom ou une valeur ; les jauges suivent.">
+            {repas.constituants.map((c) => (
+              <CarteConstituant
+                key={c.id}
+                constituant={c}
+                corriger={(corrige) => corrigerConstituant(c.id, corrige)}
+                supprimer={() => supprimerConstituant(c.id)}
+                onChange={charger}
+              />
+            ))}
+            <AjoutConstituant repasId={repas.id} onChange={charger} />
+            <EnregistrerCommePlat
+              nomPropose={repas.description || repas.constituants.map((c) => c.nom).join(", ")}
+              constituants={repas.constituants}
             />
-          ))}
-          <AjoutConstituant repasId={repas.id} onChange={charger} />
-          <EnregistrerCommePlat
-            nomPropose={repas.description || repas.constituants.map((c) => c.nom).join(", ")}
-            constituants={repas.constituants}
-          />
+          </Carte>
 
           {repas.commentaire && (
-            <>
-              <ThemedText type="smallBold">Commentaire du repas</ThemedText>
+            <Carte titre="Commentaire du repas">
               <ThemedText>{repas.commentaire}</ThemedText>
-            </>
+            </Carte>
           )}
         </>
       )}
 
-      <ThemedText type="smallBold">Précision</ThemedText>
-      <ThemedText type="small" themeColor="textSecondary">
-        Relancer l'analyse remplace les Constituants (y compris tes corrections à la main) et le Commentaire.
-      </ThemedText>
-      <Champ
-        multiline
-        placeholder="Ex. : j'ai ajouté une cuillère d'huile, la sauce était à part"
-        value={precision}
-        onChangeText={setPrecision}
-      />
-      <Bouton
-        libelle={precision.trim() ? "Relancer l'analyse avec cette précision" : "Relancer l'analyse"}
-        onPress={relancer}
-        enCours={relance}
-      />
-      {message && <ThemedText themeColor="textSecondary">{message}</ThemedText>}
+      <Carte
+        titre="Précision"
+        detail="Relancer l'analyse remplace les Constituants (y compris tes corrections à la main) et le Commentaire.">
+        <Champ
+          libelle="Ce qu'il faut savoir"
+          multiline
+          placeholder="Ex. : j'ai ajouté une cuillère d'huile, la sauce était à part"
+          value={precision}
+          onChangeText={setPrecision}
+        />
+        <Bouton
+          libelle={precision.trim() ? "Relancer l'analyse avec cette précision" : "Relancer l'analyse"}
+          onPress={relancer}
+          enCours={relance}
+        />
+        {message && <ThemedText themeColor="textSecondary">{message}</ThemedText>}
+      </Carte>
 
-      <MomentDuRepas key={repas.mange_le + repas.type_repas} repas={repas} onChange={charger} />
-      <Bouton libelle="Supprimer le Repas" variante="secondaire" onPress={() => confirmerSuppression(repas)} />
+      <Carte titre="Moment du Repas">
+        <MomentDuRepas key={repas.mange_le + repas.type_repas} repas={repas} onChange={charger} />
+      </Carte>
+
+      <Bouton libelle="Supprimer ce Repas" variante="discret" onPress={() => confirmerSuppression(repas)} />
     </Ecran>
   );
 }
 
 const styles = StyleSheet.create({
-  photo: { width: "100%", aspectRatio: 4 / 3, borderRadius: 12 },
+  photo: { width: "100%", aspectRatio: 4 / 3, borderRadius: Rayons.carte },
 });

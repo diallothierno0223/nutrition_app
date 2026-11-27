@@ -7,6 +7,15 @@ import { useTheme } from "@/hooks/use-theme";
 /** Hauteur commune des champs d'une ligne (texte, date, heure). */
 export const HAUTEUR_DE_CHAMP = 52;
 
+/** Le libellé posé au-dessus d'un champ ou d'un groupe de puces (« Sexe », « Type de repas »). */
+export function LibelleDeChamp({ children }: { children: React.ReactNode }) {
+  return (
+    <ThemedText type="detail" style={styles.libelle}>
+      {children}
+    </ThemedText>
+  );
+}
+
 /** Un champ et son libellé posé au-dessus (« Taille (cm) »), dans le bloc que l'écran place avec `style`. */
 export function CadreDeChamp({
   libelle,
@@ -19,11 +28,7 @@ export function CadreDeChamp({
 }) {
   return (
     <View style={[styles.cadre, style]}>
-      {libelle && (
-        <ThemedText type="detail" style={styles.libelle}>
-          {libelle}
-        </ThemedText>
-      )}
+      {libelle && <LibelleDeChamp>{libelle}</LibelleDeChamp>}
       {children}
     </View>
   );

@@ -2,7 +2,8 @@ import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { Bouton } from "@/components/bouton";
-import { Champ } from "@/components/champ";
+import { Carte } from "@/components/carte";
+import { Champ, LibelleDeChamp } from "@/components/champ";
 import { ChampDate } from "@/components/champ-date-heure";
 import { Puces } from "@/components/puces";
 import { ThemedText } from "@/components/themed-text";
@@ -79,41 +80,77 @@ export function SectionProfil({ profil, onEnregistre }: { profil: Profil; onEnre
   }
 
   return (
-    <View style={styles.section}>
-      <ThemedText type="smallBold">Profil</ThemedText>
+    <Carte titre="Profil" detail={`Fuseau horaire : ${fuseauDuTelephone()} (celui du téléphone)`}>
       <View style={styles.ligne}>
-        <Champ style={styles.moitie} placeholder="Taille (cm)" keyboardType="decimal-pad" value={saisie.taille}
-          onChangeText={(taille) => modifier({ taille })} />
-        <ChampDate style={styles.moitie} placeholder="Date de naissance" valeur={saisie.date_naissance} effacable
-          max={aujourdhui} onChange={(date_naissance) => modifier({ date_naissance })} />
+        <Champ
+          style={styles.moitie}
+          libelle="Taille (cm)"
+          placeholder="ex. 175"
+          keyboardType="decimal-pad"
+          value={saisie.taille}
+          onChangeText={(taille) => modifier({ taille })}
+        />
+        <ChampDate
+          style={styles.moitie}
+          libelle="Date de naissance"
+          placeholder="Choisir"
+          valeur={saisie.date_naissance}
+          effacable
+          max={aujourdhui}
+          onChange={(date_naissance) => modifier({ date_naissance })}
+        />
       </View>
-      <Puces options={SEXES} valeur={saisie.sexe} libelle={libelleDuSexe} onChange={(sexe) => modifier({ sexe })} />
-      <Puces options={NIVEAUX_D_ACTIVITE} valeur={saisie.niveau_activite} libelle={libelleDuNiveauDActivite}
-        onChange={(niveau_activite) => modifier({ niveau_activite })} />
-      <ThemedText type="small" themeColor="textSecondary">
-        Fuseau horaire : {fuseauDuTelephone()} (celui du téléphone, enregistré avec le Profil)
-      </ThemedText>
-
-      <ThemedText type="smallBold">Objectifs personnels</ThemedText>
-      <Champ multiline placeholder="Ex. : prendre 2 kg en 6 mois, réduire le sucre, manger plus de fibres"
-        value={saisie.objectifs_personnels} onChangeText={(objectifs_personnels) => modifier({ objectifs_personnels })} />
-
-      <ThemedText type="smallBold">Objectif de poids</ThemedText>
-      <View style={styles.ligne}>
-        <Champ style={styles.moitie} placeholder="Variation (kg, ex. 2)" keyboardType="numbers-and-punctuation"
-          value={saisie.variation} onChangeText={(variation) => modifier({ variation })} />
-        <ChampDate style={styles.moitie} placeholder="Échéance" valeur={saisie.echeance} effacable
-          onChange={(echeance) => modifier({ echeance })} />
+      <View style={styles.groupe}>
+        <LibelleDeChamp>Sexe</LibelleDeChamp>
+        <Puces options={SEXES} valeur={saisie.sexe} libelle={libelleDuSexe} onChange={(sexe) => modifier({ sexe })} />
+      </View>
+      <View style={styles.groupe}>
+        <LibelleDeChamp>Niveau d'activité</LibelleDeChamp>
+        <Puces
+          options={NIVEAUX_D_ACTIVITE}
+          valeur={saisie.niveau_activite}
+          libelle={libelleDuNiveauDActivite}
+          onChange={(niveau_activite) => modifier({ niveau_activite })}
+        />
       </View>
 
+      <Champ
+        libelle="Objectifs personnels"
+        multiline
+        placeholder="Ex. : prendre 2 kg en 6 mois, réduire le sucre, manger plus de fibres"
+        value={saisie.objectifs_personnels}
+        onChangeText={(objectifs_personnels) => modifier({ objectifs_personnels })}
+      />
+
+      <View style={styles.groupe}>
+        <ThemedText type="smallBold">Objectif de poids</ThemedText>
+        <View style={styles.ligne}>
+          <Champ
+            style={styles.moitie}
+            libelle="Variation (kg)"
+            placeholder="ex. 2 ou -3"
+            keyboardType="numbers-and-punctuation"
+            value={saisie.variation}
+            onChangeText={(variation) => modifier({ variation })}
+          />
+          <ChampDate
+            style={styles.moitie}
+            libelle="Échéance"
+            placeholder="Choisir"
+            valeur={saisie.echeance}
+            effacable
+            onChange={(echeance) => modifier({ echeance })}
+          />
+        </View>
+      </View>
       {message && <ThemedText themeColor="textSecondary">{message}</ThemedText>}
       <Bouton libelle="Enregistrer le Profil" onPress={enregistrer} enCours={envoi} />
-    </View>
+    </Carte>
   );
 }
 
 const styles = StyleSheet.create({
-  section: { gap: Spacing.three },
-  ligne: { flexDirection: "row", gap: Spacing.two },
+  ligne: { flexDirection: "row", gap: Spacing.three - 4 },
   moitie: { flex: 1 },
+  groupe: { gap: Spacing.two },
 });

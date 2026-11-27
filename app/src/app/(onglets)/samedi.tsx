@@ -3,8 +3,10 @@ import { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, Alert, StyleSheet, View } from "react-native";
 
 import { Bouton } from "@/components/bouton";
+import { Carte } from "@/components/carte";
 import { ContenuRendezVous } from "@/components/contenu-rendez-vous";
 import { Ecran } from "@/components/ecran";
+import { LigneDeListe } from "@/components/ligne-de-liste";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { fuseauDuTelephone } from "@/donnees/repas";
@@ -80,49 +82,58 @@ export default function Samedi() {
 
   return (
     <Ecran titre="Rendez-vous du samedi">
-      {generation && (
-        <View style={styles.progression}>
-          <ActivityIndicator />
-          <ThemedText themeColor="textSecondary">Préparation de ton Rendez-vous… (jusqu'à une minute)</ThemedText>
-        </View>
+      {(generation || message) && (
+        <Carte>
+          {generation && (
+            <View style={styles.progression}>
+              <ActivityIndicator />
+              <ThemedText themeColor="textSecondary" style={styles.texteProgression}>
+                Préparation de ton Rendez-vous… (jusqu'à une minute)
+              </ThemedText>
+            </View>
+          )}
+          {message && <ThemedText themeColor="textSecondary">{message}</ThemedText>}
+        </Carte>
       )}
-      {message && <ThemedText themeColor="textSecondary">{message}</ThemedText>}
 
       {rendezVous === null && !generation && (
-        <>
-          <ThemedText themeColor="textSecondary">
-            Aucun Rendez-vous pour l'instant. Il est préparé chaque samedi à partir de 6 h ; tu peux aussi le lancer
-            maintenant.
-          </ThemedText>
+        <Carte
+          titre="Pas encore de Rendez-vous"
+          detail="Il est préparé chaque samedi à partir de 6 h ; tu peux aussi le lancer maintenant.">
           <Bouton libelle="Préparer mon Rendez-vous" onPress={() => generer(false)} />
-        </>
+        </Carte>
       )}
 
       {rendezVous && (
-        <>
-          <Bouton
-            libelle="Liste de courses"
-            onPress={() => router.push({ pathname: "/courses/[id]", params: { id: rendezVous.id } })}
-          />
-          <ContenuRendezVous rendezVous={rendezVous} />
-          <View style={styles.actions}>
-            <Bouton
-              libelle="Nouvelle génération"
-              variante="secondaire"
-              onPress={confirmerNouvelleGeneration}
-              desactive={generation}
+        <ContenuRendezVous
+          rendezVous={rendezVous}
+          sousLeBilan={
+            <LigneDeListe
+              titre="Liste de courses"
+              detail="Ingrédients des Recettes choisies, à cocher au marché"
+              onPress={() => router.push({ pathname: "/courses/[id]", params: { id: rendezVous.id } })}
             />
-            <Bouton libelle="Rendez-vous passés" variante="secondaire" onPress={() => router.push("/rendez-vous")} />
-          </View>
-        </>
+          }
+        />
       )}
 
-      <Bouton libelle="Réglages du samedi" variante="secondaire" onPress={() => router.push("/reglages/samedi")} />
+      <Carte titre="Historique et réglages">
+        {rendezVous && (
+          <Bouton
+            libelle="Nouvelle génération"
+            variante="secondaire"
+            onPress={confirmerNouvelleGeneration}
+            desactive={generation}
+          />
+        )}
+        <LigneDeListe titre="Rendez-vous passés" onPress={() => router.push("/rendez-vous")} />
+        <LigneDeListe titre="Réglages du samedi" onPress={() => router.push("/reglages/samedi")} />
+      </Carte>
     </Ecran>
   );
 }
 
 const styles = StyleSheet.create({
   progression: { flexDirection: "row", alignItems: "center", gap: Spacing.two },
-  actions: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.two },
+  texteProgression: { flex: 1 },
 });

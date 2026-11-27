@@ -1,12 +1,10 @@
 import { router, type Href } from "expo-router";
-import { Pressable, StyleSheet, View } from "react-native";
 
 import { useSession } from "@/auth/session";
 import { Bouton } from "@/components/bouton";
+import { Carte } from "@/components/carte";
 import { Ecran } from "@/components/ecran";
-import { ThemedText } from "@/components/themed-text";
-import { Spacing } from "@/constants/theme";
-import { useTheme } from "@/hooks/use-theme";
+import { LigneDeListe } from "@/components/ligne-de-liste";
 import { supabase } from "@/lib/supabase";
 
 const SECTIONS: { titre: string; description: string; route: Href }[] = [
@@ -20,44 +18,19 @@ const SECTIONS: { titre: string; description: string; route: Href }[] = [
 
 /** Réglages : tout ce qui se configure dans l'app, rangé par section. */
 export default function Reglages() {
-  const theme = useTheme();
   const { session } = useSession();
 
   return (
     <Ecran titre="Réglages">
-      {SECTIONS.map((s) => (
-        <Pressable
-          key={s.titre}
-          onPress={() => router.push(s.route)}
-          accessibilityRole="button"
-          style={({ pressed }) => [styles.section, { backgroundColor: theme.backgroundElement }, pressed && styles.appuye]}>
-          <View style={styles.texte}>
-            <ThemedText type="smallBold">{s.titre}</ThemedText>
-            <ThemedText type="small" themeColor="textSecondary">
-              {s.description}
-            </ThemedText>
-          </View>
-          <ThemedText themeColor="textSecondary">›</ThemedText>
-        </Pressable>
-      ))}
+      <Carte>
+        {SECTIONS.map((s) => (
+          <LigneDeListe key={s.titre} titre={s.titre} detail={s.description} onPress={() => router.push(s.route)} />
+        ))}
+      </Carte>
 
-      <ThemedText type="smallBold">Compte</ThemedText>
-      <ThemedText type="small" themeColor="textSecondary">
-        Connecté : {session?.user.email}
-      </ThemedText>
-      <Bouton libelle="Se déconnecter" variante="secondaire" onPress={() => supabase.auth.signOut()} />
+      <Carte titre="Compte" detail={session?.user.email ? `Connecté : ${session.user.email}` : undefined}>
+        <Bouton libelle="Se déconnecter" variante="secondaire" onPress={() => supabase.auth.signOut()} />
+      </Carte>
     </Ecran>
   );
 }
-
-const styles = StyleSheet.create({
-  section: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.three,
-    borderRadius: 12,
-    padding: Spacing.three,
-  },
-  texte: { flex: 1, gap: Spacing.one },
-  appuye: { opacity: 0.6 },
-});

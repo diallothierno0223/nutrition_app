@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { Bouton } from "@/components/bouton";
+import { Carte } from "@/components/carte";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { useEnvoi } from "@/hooks/use-envoi";
@@ -32,11 +33,8 @@ export function SanteConnectee() {
   if (!etat) return null;
 
   return (
-    <View style={styles.bloc}>
-      <ThemedText type="smallBold">Health Connect</ThemedText>
-      <ThemedText type="small" themeColor="textSecondary">
-        {EXPLICATIONS[etat]}
-      </ThemedText>
+    <Carte titre="Health Connect">
+      <ThemedText themeColor="textSecondary">{EXPLICATIONS[etat]}</ThemedText>
       <View style={styles.actions}>
         {etat === "a_autoriser" && (
           <Bouton
@@ -64,11 +62,10 @@ export function SanteConnectee() {
         )}
       </View>
       {(erreur ?? message) && <ThemedText themeColor="textSecondary">{erreur ?? message}</ThemedText>}
-    </View>
+    </Carte>
   );
 }
 
 const styles = StyleSheet.create({
-  bloc: { gap: Spacing.two },
   actions: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.two },
 });

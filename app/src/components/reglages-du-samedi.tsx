@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { Bouton } from "@/components/bouton";
+import { Carte } from "@/components/carte";
 import { Champ } from "@/components/champ";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
@@ -53,8 +54,7 @@ export function ReglagesDuSamedi() {
   if (!saisie) return message ? <ThemedText themeColor="textSecondary">{message}</ThemedText> : null;
 
   return (
-    <View style={styles.bloc}>
-      <ThemedText type="smallBold">Réglages du samedi</ThemedText>
+    <Carte titre="Nombres du Rendez-vous" detail="Appliqués à la prochaine génération">
       {CHAMPS.map(({ cle, libelle, min, max }) => (
         <View key={cle} style={styles.ligne}>
           <ThemedText type="small" style={styles.libelle}>
@@ -73,14 +73,13 @@ export function ReglagesDuSamedi() {
       ))}
       {!reglages && <ThemedText themeColor="textSecondary">Valeurs hors limites (au moins une portion par Recette).</ThemedText>}
       {(erreur ?? message) && <ThemedText themeColor="textSecondary">{erreur ?? message}</ThemedText>}
-      <Bouton libelle="Enregistrer" variante="secondaire" onPress={enregistrer} desactive={!reglages} enCours={envoi} />
-    </View>
+      <Bouton libelle="Enregistrer" onPress={enregistrer} desactive={!reglages} enCours={envoi} />
+    </Carte>
   );
 }
 
 const styles = StyleSheet.create({
-  bloc: { gap: Spacing.two },
   ligne: { flexDirection: "row", alignItems: "center", gap: Spacing.two },
   libelle: { flex: 1 },
-  champ: { width: 72, textAlign: "center" },
+  champ: { width: 80, textAlign: "center" },
 });

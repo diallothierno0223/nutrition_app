@@ -1,8 +1,10 @@
 import { useState } from "react";
-import { StyleSheet, Switch, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { Bouton } from "@/components/bouton";
+import { Carte } from "@/components/carte";
 import { Ecran } from "@/components/ecran";
+import { Interrupteur } from "@/components/interrupteur";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { ConnexionPerdue, PartageIndisponible, exporterMesDonnees } from "@/donnees/export";
@@ -38,34 +40,36 @@ export default function ReglagesDonnees() {
 
   return (
     <Ecran>
-      <ThemedText>
-        L'export rassemble toutes tes données (Repas, Pesées, Objectifs, Règles, Plats, Rendez-vous…) dans un fichier
-        ZIP de tableaux CSV. Choisis ensuite où l'enregistrer : sur le téléphone, dans Drive…
-      </ThemedText>
-      <ThemedText themeColor="textSecondary">
-        La base gratuite de Supabase n'est pas sauvegardée automatiquement, photos comprises : cet export est ta copie
-        de secours. Un rappel arrive le 1er de chaque mois (réglable dans Notifications).
-      </ThemedText>
+      <Carte titre="Exporter mes données">
+        <ThemedText>
+          L'export rassemble toutes tes données (Repas, Pesées, Objectifs, Règles, Plats, Rendez-vous…) dans un fichier
+          ZIP de tableaux CSV. Choisis ensuite où l'enregistrer : sur le téléphone, dans Drive…
+        </ThemedText>
+        <ThemedText themeColor="textSecondary">
+          La base gratuite de Supabase n'est pas sauvegardée automatiquement, photos comprises : cet export est ta copie
+          de secours. Un rappel arrive le 1er de chaque mois (réglable dans Notifications).
+        </ThemedText>
 
-      <View style={styles.ligne}>
-        <View style={styles.libelle}>
-          <ThemedText>Inclure les photos</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            Plus long et plus lourd (quelques centaines de Ko par photo). Sans elles, photos.csv donne un lien valable
-            7 jours pour chacune.
-          </ThemedText>
+        <View style={styles.ligne}>
+          <View style={styles.libelle}>
+            <ThemedText>Inclure les photos</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              Plus long et plus lourd (quelques centaines de Ko par photo). Sans elles, photos.csv donne un lien valable
+              7 jours pour chacune.
+            </ThemedText>
+          </View>
+          <Interrupteur
+            value={avecPhotos}
+            onValueChange={setAvecPhotos}
+            disabled={exportEnCours}
+            accessibilityLabel="Inclure les photos"
+          />
         </View>
-        <Switch
-          value={avecPhotos}
-          onValueChange={setAvecPhotos}
-          disabled={exportEnCours}
-          accessibilityLabel="Inclure les photos"
-        />
-      </View>
 
-      {progression && <ThemedText themeColor="textSecondary">{progression}</ThemedText>}
-      {message && <ThemedText themeColor="textSecondary">{message}</ThemedText>}
-      <Bouton libelle="Exporter mes données" onPress={exporter} enCours={exportEnCours} />
+        {progression && <ThemedText themeColor="textSecondary">{progression}</ThemedText>}
+        {message && <ThemedText themeColor="textSecondary">{message}</ThemedText>}
+        <Bouton libelle="Exporter mes données" onPress={exporter} enCours={exportEnCours} />
+      </Carte>
     </Ecran>
   );
 }

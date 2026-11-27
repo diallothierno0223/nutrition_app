@@ -8,4 +8,6 @@ export function lireNombre(texte: string): number | null | undefined {
   return Number.isFinite(valeur) ? valeur : undefined;
 }
 
-export const versTexte = (valeur: number | null | undefined): string => (valeur == null ? "" : String(valeur));
+/** La valeur à afficher dans un champ, avec la virgule française (« 71,8 ») ; vide si absente. */
+export const versTexte = (valeur: number | null | undefined): string =>
+  valeur == null ? "" : String(valeur).replace(".", ",");

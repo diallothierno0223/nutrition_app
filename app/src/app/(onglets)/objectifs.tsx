@@ -3,8 +3,10 @@ import { useCallback, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { Bouton } from "@/components/bouton";
+import { Carte } from "@/components/carte";
 import { Champ } from "@/components/champ";
 import { Ecran } from "@/components/ecran";
+import { LigneDeListe } from "@/components/ligne-de-liste";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { chargerObjectifEau } from "@/donnees/hydratation";
@@ -67,7 +69,7 @@ export default function Objectifs() {
         setEtat({
           actuels: versSaisie(objectifs),
           saisie: versSaisie(objectifs),
-          eauLitres: eauMl === null ? "" : String(eauMl / 1000),
+          eauLitres: eauMl === null ? "" : versTexte(eauMl / 1000),
           aReestimer: reestimationAProposer(dates.objectifs, dates.sources),
           sansObjectifs: dates.objectifs === null,
         });
@@ -84,7 +86,7 @@ export default function Objectifs() {
     setEstimationEnCours(false);
     if ("erreur" in resultat) return setMessage(resultat.erreur);
     setProposition(resultat);
-    const proposee = Object.fromEntries(NUTRIMENTS.map((n) => [n, String(resultat.estimation[n].valeur)])) as Saisie;
+    const proposee = Object.fromEntries(NUTRIMENTS.map((n) => [n, versTexte(resultat.estimation[n].valeur)])) as Saisie;
     setEtat((e) => e && { ...e, saisie: proposee });
   }
 
@@ -120,93 +122,88 @@ export default function Objectifs() {
 
   return (
     <Ecran titre="Objectifs">
-      <ThemedText type="smallBold">Objectifs journaliers</ThemedText>
-      {etat.sansObjectifs && !proposition && (
-        <ThemedText themeColor="textSecondary">
-          Complète ton Profil et ajoute une Pesée, puis demande une estimation à l'IA.
-        </ThemedText>
-      )}
-      {etat.aReestimer && !proposition && (
-        <ThemedText themeColor="textSecondary">
-          Ton Profil, tes Objectifs personnels ou les Règles du médecin ont changé depuis tes Objectifs : demande une
-          nouvelle estimation.
-        </ThemedText>
-      )}
-      <Bouton
-        libelle="Mon Profil et mes Pesées"
-        variante="secondaire"
-        onPress={() => router.push("/reglages/profil")}
-      />
-      <Bouton
-        libelle={etat.sansObjectifs ? "Estimer mes Objectifs avec l'IA" : "Réestimer avec l'IA"}
-        variante="secondaire"
-        onPress={estimer}
-        enCours={estimationEnCours}
-      />
-      {gardeFou && (
-        <ThemedText type="small" themeColor="textSecondary">
-          Repère de la formule : {formaterNombre(gardeFou.calories, 0)} kcal. Écart de la proposition :{" "}
-          {formaterNombre(gardeFou.ecart_pourcentage)} %
-          {gardeFou.alerte && ` — plus de ${SEUIL_ECART_GARDE_FOU} %, vérifie la justification avant d'appliquer`}.
-        </ThemedText>
-      )}
-
-      {NUTRIMENTS.map((n) => (
-        <View key={n} style={styles.objectif}>
-          <View style={styles.ligne}>
-            <View style={styles.libelle}>
-              <ThemedText>{libelleDuNutriment(n)}</ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                {uniteDuNutriment(n)}, {libelleDuSens(sensDuNutriment(n))}
-              </ThemedText>
-            </View>
-            <Champ
-              style={styles.valeur}
-              keyboardType="decimal-pad"
-              placeholder="—"
-              value={etat.saisie[n]}
-              onChangeText={(texte) => {
-                setEtat({ ...etat, saisie: { ...etat.saisie, [n]: texte } });
-                setMessage(null);
-              }}
-            />
-          </View>
-          {proposition && (
-            <ThemedText type="small" themeColor="textSecondary">
-              Actuel : {etat.actuels[n] || "—"} · {proposition.estimation[n].justification}
-            </ThemedText>
-          )}
-        </View>
-      ))}
-
-      <View style={styles.ligne}>
-        <View style={styles.libelle}>
-          <ThemedText>Eau</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            litres, {libelleDuSens("cible")}
+      <Carte titre="Estimation par l'IA" detail="À partir de ton Profil, de tes Pesées et des Règles du médecin">
+        {etat.sansObjectifs && !proposition && (
+          <ThemedText themeColor="textSecondary">
+            Complète ton Profil et ajoute une Pesée, puis demande une estimation à l'IA.
           </ThemedText>
-        </View>
-        <Champ
-          style={styles.valeur}
-          keyboardType="decimal-pad"
-          placeholder="—"
-          value={etat.eauLitres}
-          onChangeText={(eauLitres) => {
-            setEtat({ ...etat, eauLitres });
-            setMessage(null);
-          }}
-        />
-      </View>
-
-      {message && <ThemedText themeColor="textSecondary">{message}</ThemedText>}
-      <Bouton libelle={proposition ? "Appliquer la proposition" : "Appliquer"} onPress={appliquer} enCours={envoi} />
-      {proposition && (
+        )}
+        {etat.aReestimer && !proposition && (
+          <ThemedText themeColor="textSecondary">
+            Ton Profil, tes Objectifs personnels ou les Règles du médecin ont changé depuis tes Objectifs : demande une
+            nouvelle estimation.
+          </ThemedText>
+        )}
+        <LigneDeListe titre="Mon Profil et mes Pesées" onPress={() => router.push("/reglages/profil")} />
         <Bouton
-          libelle="Écarter la proposition"
+          libelle={etat.sansObjectifs ? "Estimer mes Objectifs avec l'IA" : "Réestimer avec l'IA"}
           variante="secondaire"
-          onPress={charger}
+          onPress={estimer}
+          enCours={estimationEnCours}
         />
-      )}
+        {gardeFou && (
+          <ThemedText type="small" themeColor="textSecondary">
+            Repère de la formule : {formaterNombre(gardeFou.calories, 0)} kcal. Écart de la proposition :{" "}
+            {formaterNombre(gardeFou.ecart_pourcentage)} %
+            {gardeFou.alerte && ` — plus de ${SEUIL_ECART_GARDE_FOU} %, vérifie la justification avant d'appliquer`}.
+          </ThemedText>
+        )}
+      </Carte>
+
+      <Carte
+        titre="Objectifs journaliers"
+        detail={proposition ? "Proposition de l'IA : vérifie, modifie si besoin, puis applique." : undefined}>
+        {NUTRIMENTS.map((n) => (
+          <View key={n} style={styles.objectif}>
+            <View style={styles.ligne}>
+              <View style={styles.libelle}>
+                <ThemedText>{libelleDuNutriment(n)}</ThemedText>
+                <ThemedText type="small" themeColor="textSecondary">
+                  {uniteDuNutriment(n)}, {libelleDuSens(sensDuNutriment(n))}
+                </ThemedText>
+              </View>
+              <Champ
+                style={styles.valeur}
+                keyboardType="decimal-pad"
+                placeholder="—"
+                value={etat.saisie[n]}
+                onChangeText={(texte) => {
+                  setEtat({ ...etat, saisie: { ...etat.saisie, [n]: texte } });
+                  setMessage(null);
+                }}
+              />
+            </View>
+            {proposition && (
+              <ThemedText type="small" themeColor="textSecondary">
+                Actuel : {etat.actuels[n] || "—"} · {proposition.estimation[n].justification}
+              </ThemedText>
+            )}
+          </View>
+        ))}
+
+        <View style={styles.ligne}>
+          <View style={styles.libelle}>
+            <ThemedText>Eau</ThemedText>
+            <ThemedText type="small" themeColor="textSecondary">
+              litres, {libelleDuSens("cible")}
+            </ThemedText>
+          </View>
+          <Champ
+            style={styles.valeur}
+            keyboardType="decimal-pad"
+            placeholder="—"
+            value={etat.eauLitres}
+            onChangeText={(eauLitres) => {
+              setEtat({ ...etat, eauLitres });
+              setMessage(null);
+            }}
+          />
+        </View>
+
+        {message && <ThemedText themeColor="textSecondary">{message}</ThemedText>}
+        <Bouton libelle={proposition ? "Appliquer la proposition" : "Appliquer"} onPress={appliquer} enCours={envoi} />
+        {proposition && <Bouton libelle="Écarter la proposition" variante="discret" onPress={charger} />}
+      </Carte>
     </Ecran>
   );
 }
@@ -215,5 +212,5 @@ const styles = StyleSheet.create({
   objectif: { gap: Spacing.one },
   ligne: { flexDirection: "row", alignItems: "center", gap: Spacing.three },
   libelle: { flex: 1 },
-  valeur: { width: 110, padding: Spacing.two, textAlign: "right" },
+  valeur: { width: 110, textAlign: "right" },
 });

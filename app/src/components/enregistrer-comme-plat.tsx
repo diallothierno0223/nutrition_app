@@ -40,7 +40,7 @@ export function EnregistrerCommePlat({
 
   return (
     <View style={styles.bloc}>
-      <Champ placeholder="Nom du Plat" value={nom} onChangeText={setNom} />
+      <Champ libelle="Nom du Plat" placeholder="ex. Mafé du dimanche" value={nom} onChangeText={setNom} />
       {erreur && <ThemedText themeColor="textSecondary">{erreur}</ThemedText>}
       <View style={styles.actions}>
         <Bouton libelle="Enregistrer" variante="secondaire" onPress={enregistrer} desactive={!nom.trim()} enCours={envoi} />

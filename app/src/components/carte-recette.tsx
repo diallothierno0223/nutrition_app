@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { Bouton } from "@/components/bouton";
 import { ThemedText } from "@/components/themed-text";
 import { ValeursNutritionnelles } from "@/components/valeurs-nutritionnelles";
-import { Spacing } from "@/constants/theme";
+import { Rayons, Spacing } from "@/constants/theme";
 import { marquerARefaire, type RecetteEnregistree } from "@/donnees/samedi";
 import { useEnvoi } from "@/hooks/use-envoi";
 import { useTheme } from "@/hooks/use-theme";
@@ -24,8 +24,12 @@ export function CarteRecette({ recette, actions }: { recette: RecetteEnregistree
 
   return (
     <View style={[styles.carte, { backgroundColor: theme.backgroundElement }]}>
-      <Pressable onPress={() => setOuverte((o) => !o)} style={styles.entete}>
-        <ThemedText type="smallBold" style={styles.nom}>
+      <Pressable
+        onPress={() => setOuverte((o) => !o)}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: ouverte }}
+        style={styles.entete}>
+        <ThemedText style={[styles.nom, styles.gras]}>
           {recette.nom}
         </ThemedText>
         <ThemedText type="small" themeColor="textSecondary">
@@ -83,8 +87,9 @@ export function CarteRecette({ recette, actions }: { recette: RecetteEnregistree
 }
 
 const styles = StyleSheet.create({
-  carte: { borderRadius: 12, padding: Spacing.three, gap: Spacing.two },
-  entete: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: Spacing.two },
+  carte: { borderRadius: Rayons.moyen, padding: 14, gap: Spacing.two },
+  entete: { minHeight: 44, flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: Spacing.two },
   nom: { flex: 1 },
+  gras: { fontWeight: 700 },
   actions: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.two },
 });

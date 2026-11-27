@@ -5,7 +5,7 @@ import { Bouton } from "@/components/bouton";
 import { Champ } from "@/components/champ";
 import { ThemedText } from "@/components/themed-text";
 import { ValeursNutritionnelles } from "@/components/valeurs-nutritionnelles";
-import { Spacing } from "@/constants/theme";
+import { Rayons, Spacing } from "@/constants/theme";
 import { useEnvoi } from "@/hooks/use-envoi";
 import { useTheme } from "@/hooks/use-theme";
 import { lireNombre } from "@/lib/saisie";
@@ -72,14 +72,16 @@ export function CarteConstituant({ constituant, corriger, supprimer, onChange }:
             Les nutriments sont recalculés en proportion, sans nouvelle analyse.
           </ThemedText>
           <Champ
-            placeholder={`Quantité en ${constituant.unite}`}
+            libelle={`Quantité (${constituant.unite})`}
+            placeholder={formaterNombre(constituant.quantite)}
             keyboardType="decimal-pad"
             value={saisie.en === "quantite" ? saisie.texte : ""}
             onChangeText={(texte) => setSaisie({ en: "quantite", texte })}
           />
           {equivalent && (
             <Champ
-              placeholder={`Ou en nombre de « ${equivalent.ustensile} »`}
+              libelle={`Ou en nombre de « ${equivalent.ustensile} »`}
+              placeholder="ex. 1,5"
               keyboardType="decimal-pad"
               value={saisie.en === "ustensiles" ? saisie.texte : ""}
               onChangeText={(texte) => setSaisie({ en: "ustensiles", texte })}
@@ -97,7 +99,7 @@ export function CarteConstituant({ constituant, corriger, supprimer, onChange }:
             <Bouton libelle="Annuler" variante="discret" onPress={() => setSaisie(null)} desactive={envoi} />
             <Bouton
               libelle="Supprimer"
-              variante="secondaire"
+              variante="discret"
               onPress={() => agir(supprimer)}
               desactive={envoi}
             />
@@ -115,6 +117,6 @@ export function CarteConstituant({ constituant, corriger, supprimer, onChange }:
 }
 
 const styles = StyleSheet.create({
-  carte: { borderRadius: 12, padding: Spacing.three, gap: Spacing.two },
+  carte: { borderRadius: Rayons.moyen, padding: 14, gap: Spacing.two },
   actions: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.two },
 });

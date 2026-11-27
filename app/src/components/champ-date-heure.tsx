@@ -1,12 +1,12 @@
 // Saisie d'une date (calendrier) ou d'une heure (horloge) avec le sélecteur natif d'Android : plus de format à taper.
 // Les valeurs restent au format stocké : AAAA-MM-JJ pour une date, HH:MM pour une heure.
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
-import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
+import { Pressable, StyleSheet, type StyleProp, type ViewStyle } from "react-native";
 
 import { Bouton } from "@/components/bouton";
 import { CadreDeChamp, HAUTEUR_DE_CHAMP } from "@/components/champ";
 import { ThemedText } from "@/components/themed-text";
-import { Rayons, Spacing } from "@/constants/theme";
+import { Rayons } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import {
   depuisJournee,
@@ -43,11 +43,13 @@ function Declencheur({ texte, vide, desactive, style, onPress }: {
       accessibilityRole="button"
       style={({ pressed }) => [
         styles.champ,
-        { backgroundColor: theme.carte, borderColor: theme.bordure },
-        (pressed || desactive) && styles.attenue,
+        desactive
+          ? { backgroundColor: theme.desactiveFond, borderColor: theme.desactiveFond }
+          : { backgroundColor: theme.carte, borderColor: theme.bordure },
+        pressed && styles.attenue,
         style,
       ]}>
-      <ThemedText themeColor={vide ? "textSecondary" : "text"} numberOfLines={1}>
+      <ThemedText themeColor={desactive ? "desactiveTexte" : vide ? "textSecondary" : "text"} numberOfLines={1}>
         {texte}
       </ThemedText>
     </Pressable>
@@ -60,7 +62,7 @@ export function ChampDate({ valeur, onChange, placeholder, libelle, desactive, s
   onChange: (journee: string) => void;
   min?: string;
   max?: string;
-  /** Date facultative : un bouton permet de la retirer (valeur ""). */
+  /** Date facultative : un bouton discret, sous le champ, permet de la retirer (valeur ""). */
   effacable?: boolean;
 }) {
   const vide = !estUneJourneeValide(valeur);
@@ -73,24 +75,16 @@ export function ChampDate({ valeur, onChange, placeholder, libelle, desactive, s
       onValueChange: (_evenement, date) => onChange(versJournee(date)),
     });
   }
-  const declencheur = (
-    <Declencheur
-      texte={vide ? placeholder : libelleCourtDeJournee(valeur)}
-      vide={vide}
-      desactive={desactive}
-      style={effacable ? styles.extensible : undefined}
-      onPress={ouvrir}
-    />
-  );
   return (
     <CadreDeChamp libelle={libelle} style={style}>
-      {effacable ? (
-        <View style={styles.ligne}>
-          {declencheur}
-          {!vide && !desactive && <Bouton libelle="Effacer" variante="discret" onPress={() => onChange("")} />}
-        </View>
-      ) : (
-        declencheur
+      <Declencheur
+        texte={vide ? placeholder : libelleCourtDeJournee(valeur)}
+        vide={vide}
+        desactive={desactive}
+        onPress={ouvrir}
+      />
+      {effacable && !vide && !desactive && (
+        <Bouton libelle="Effacer" variante="discret" onPress={() => onChange("")} />
       )}
     </CadreDeChamp>
   );
@@ -130,7 +124,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     justifyContent: "center",
   },
-  attenue: { opacity: 0.5 },
-  ligne: { flexDirection: "row", alignItems: "center", gap: Spacing.two },
-  extensible: { flex: 1 },
+  attenue: { opacity: 0.7 },
 });
