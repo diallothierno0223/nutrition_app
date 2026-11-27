@@ -3,13 +3,14 @@ import { StyleSheet, View } from "react-native";
 
 import { Bouton } from "@/components/bouton";
 import { Champ } from "@/components/champ";
+import { ChampDate } from "@/components/champ-date-heure";
 import { Puces } from "@/components/puces";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { enregistrerProfil, type Profil } from "@/donnees/profil";
 import { fuseauDuTelephone } from "@/donnees/repas";
 import { lireNombre, versTexte } from "@/lib/saisie";
-import { NIVEAUX_D_ACTIVITE, SEXES, estUneJourneeValide, libelleDuNiveauDActivite, libelleDuSexe } from "@noyau";
+import { NIVEAUX_D_ACTIVITE, SEXES, journeeDe, libelleDuNiveauDActivite, libelleDuSexe } from "@noyau";
 
 
 type Saisie = {
@@ -37,9 +38,7 @@ function depuisSaisie(s: Saisie): Profil | string {
   const taille = lireNombre(s.taille);
   const variation = lireNombre(s.variation);
   if (taille === undefined || (taille !== null && (taille < 100 || taille > 250))) return "Taille entre 100 et 250 cm.";
-  if (s.date_naissance && !estUneJourneeValide(s.date_naissance)) return "Date de naissance au format AAAA-MM-JJ.";
   if (variation === undefined) return "La variation de poids doit être un nombre (ex. 2 ou -3).";
-  if (s.echeance && !estUneJourneeValide(s.echeance)) return "Échéance au format AAAA-MM-JJ.";
   if ((variation === null) !== (s.echeance === "")) return "Indique à la fois la variation de poids et son échéance.";
   return {
     taille_cm: taille,
@@ -54,6 +53,7 @@ function depuisSaisie(s: Saisie): Profil | string {
 
 /** Profil, Objectifs personnels et Objectif de poids. */
 export function SectionProfil({ profil, onEnregistre }: { profil: Profil; onEnregistre: () => void }) {
+  const aujourdhui = journeeDe(new Date(), fuseauDuTelephone());
   const [saisie, setSaisie] = useState(() => versSaisie(profil));
   const [message, setMessage] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
@@ -83,8 +83,8 @@ export function SectionProfil({ profil, onEnregistre }: { profil: Profil; onEnre
       <View style={styles.ligne}>
         <Champ style={styles.moitie} placeholder="Taille (cm)" keyboardType="decimal-pad" value={saisie.taille}
           onChangeText={(taille) => modifier({ taille })} />
-        <Champ style={styles.moitie} placeholder="Naissance AAAA-MM-JJ" value={saisie.date_naissance}
-          onChangeText={(date_naissance) => modifier({ date_naissance })} />
+        <ChampDate style={styles.moitie} placeholder="Date de naissance" valeur={saisie.date_naissance} effacable
+          max={aujourdhui} onChange={(date_naissance) => modifier({ date_naissance })} />
       </View>
       <Puces options={SEXES} valeur={saisie.sexe} libelle={libelleDuSexe} onChange={(sexe) => modifier({ sexe })} />
       <Puces options={NIVEAUX_D_ACTIVITE} valeur={saisie.niveau_activite} libelle={libelleDuNiveauDActivite}
@@ -101,8 +101,8 @@ export function SectionProfil({ profil, onEnregistre }: { profil: Profil; onEnre
       <View style={styles.ligne}>
         <Champ style={styles.moitie} placeholder="Variation (kg, ex. 2)" keyboardType="numbers-and-punctuation"
           value={saisie.variation} onChangeText={(variation) => modifier({ variation })} />
-        <Champ style={styles.moitie} placeholder="Échéance AAAA-MM-JJ" value={saisie.echeance}
-          onChangeText={(echeance) => modifier({ echeance })} />
+        <ChampDate style={styles.moitie} placeholder="Échéance" valeur={saisie.echeance} effacable
+          onChange={(echeance) => modifier({ echeance })} />
       </View>
 
       {message && <ThemedText themeColor="textSecondary">{message}</ThemedText>}

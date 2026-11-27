@@ -3,17 +3,19 @@ import { StyleSheet, View } from "react-native";
 
 import { Bouton } from "@/components/bouton";
 import { Champ } from "@/components/champ";
+import { ChampDate } from "@/components/champ-date-heure";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { enregistrerPesee, supprimerPesee, type Pesee } from "@/donnees/profil";
 import { fuseauDuTelephone } from "@/donnees/repas";
 import { lireNombre } from "@/lib/saisie";
-import { POIDS_MAX_KG, POIDS_MIN_KG, estUneJourneeValide, journeeDe } from "@noyau";
+import { POIDS_MAX_KG, POIDS_MIN_KG, journeeDe, libelleDeJournee } from "@noyau";
 
 /** Ajout d'une Pesée (une par date) et liste des dernières, supprimables. */
 export function SectionPesees({ pesees, onChange }: { pesees: Pesee[]; onChange: () => void }) {
   const [poids, setPoids] = useState("");
-  const [date, setDate] = useState(() => journeeDe(new Date(), fuseauDuTelephone()));
+  const aujourdhui = journeeDe(new Date(), fuseauDuTelephone());
+  const [date, setDate] = useState(aujourdhui);
   const [message, setMessage] = useState<string | null>(null);
 
   async function ajouter() {
@@ -21,7 +23,6 @@ export function SectionPesees({ pesees, onChange }: { pesees: Pesee[]; onChange:
     if (valeur == null || valeur < POIDS_MIN_KG || valeur > POIDS_MAX_KG) {
       return setMessage(`Poids entre ${POIDS_MIN_KG} et ${POIDS_MAX_KG} kg.`);
     }
-    if (!estUneJourneeValide(date)) return setMessage("Date au format AAAA-MM-JJ.");
     try {
       await enregistrerPesee(date, valeur);
       setPoids("");
@@ -47,14 +48,14 @@ export function SectionPesees({ pesees, onChange }: { pesees: Pesee[]; onChange:
       <View style={styles.ligne}>
         <Champ style={styles.moitie} placeholder="Poids (kg)" keyboardType="decimal-pad" value={poids}
           onChangeText={setPoids} />
-        <Champ style={styles.moitie} placeholder="AAAA-MM-JJ" value={date} onChangeText={setDate} />
+        <ChampDate style={styles.moitie} placeholder="Date" valeur={date} onChange={setDate} max={aujourdhui} />
       </View>
       {message && <ThemedText themeColor="textSecondary">{message}</ThemedText>}
       <Bouton libelle="Ajouter la Pesée" variante="secondaire" onPress={ajouter} desactive={!poids.trim()} />
       {pesees.slice(0, 5).map((p) => (
         <View key={p.id} style={styles.pesee}>
           <ThemedText>
-            {p.pese_le} · {p.poids_kg} kg
+            {libelleDeJournee(p.pese_le)} · {p.poids_kg} kg
           </ThemedText>
           <Bouton libelle="Supprimer" variante="secondaire" onPress={() => supprimer(p.id)} />
         </View>

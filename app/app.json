@@ -19,7 +19,12 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": ["android.permission.health.READ_STEPS", "android.permission.health.READ_WEIGHT", "android.permission.SCHEDULE_EXACT_ALARM", "android.permission.USE_EXACT_ALARM"]
+      "permissions": [
+        "android.permission.health.READ_STEPS",
+        "android.permission.health.READ_WEIGHT",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.USE_EXACT_ALARM"
+      ]
     },
     "web": {
       "favicon": "./assets/images/favicon.png"
@@ -45,11 +50,14 @@
       [
         "expo-build-properties",
         {
-          "android": { "minSdkVersion": 26 }
+          "android": {
+            "minSdkVersion": 26
+          }
         }
       ],
       "react-native-health-connect",
-      "expo-notifications"
+      "expo-notifications",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true,

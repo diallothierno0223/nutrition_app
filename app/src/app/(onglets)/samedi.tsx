@@ -5,7 +5,6 @@ import { ActivityIndicator, Alert, StyleSheet, View } from "react-native";
 import { Bouton } from "@/components/bouton";
 import { ContenuRendezVous } from "@/components/contenu-rendez-vous";
 import { Ecran } from "@/components/ecran";
-import { ReglagesDuSamedi } from "@/components/reglages-du-samedi";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { fuseauDuTelephone } from "@/donnees/repas";
@@ -118,7 +117,7 @@ export default function Samedi() {
         </>
       )}
 
-      <ReglagesDuSamedi />
+      <Bouton libelle="Réglages du samedi" variante="secondaire" onPress={() => router.push("/reglages/samedi")} />
     </Ecran>
   );
 }

@@ -24,13 +24,13 @@ export default function Onglets() {
         <NativeTabs.Trigger.Label>Objectifs</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="target" md="target" />
       </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="regles">
-        <NativeTabs.Trigger.Label>Médecin</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf="stethoscope" md="medical_services" />
-      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="samedi">
         <NativeTabs.Trigger.Label>Samedi</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon sf="cart" md="shopping_cart" />
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="reglages">
+        <NativeTabs.Trigger.Label>Réglages</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="gearshape" md="settings" />
       </NativeTabs.Trigger>
     </NativeTabs>
   );

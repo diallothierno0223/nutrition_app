@@ -3,6 +3,7 @@ import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, TextInput, View } from "react-native";
 
 import { Bouton } from "@/components/bouton";
+import { ChampDate } from "@/components/champ-date-heure";
 import { Ecran } from "@/components/ecran";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
@@ -12,9 +13,9 @@ import { useTheme } from "@/hooks/use-theme";
 import {
   CATEGORIES_DE_REGLE,
   contientUnSeuilChiffre,
-  estUneJourneeValide,
   journeeDe,
   libelleDeCategorie,
+  libelleDeJournee,
   type CategorieDeRegle,
 } from "@noyau";
 
@@ -41,10 +42,6 @@ export default function Regles() {
   useFocusEffect(charger);
 
   async function enregistrer() {
-    if (!estUneJourneeValide(brouillon.date_consultation)) {
-      setMessage("La date de consultation doit être une vraie date, au format AAAA-MM-JJ.");
-      return;
-    }
     setEnvoi(true);
     try {
       const { id, ...regle } = brouillon;
@@ -74,7 +71,7 @@ export default function Regles() {
   const archivees = regles?.filter((r) => r.archivee_le !== null) ?? [];
 
   return (
-    <Ecran titre="Règles du médecin">
+    <Ecran>
       <ThemedText themeColor="textSecondary">
         Les consignes actives guident chaque analyse de l'IA. Les chiffres (grammes, kcal) vont dans les Objectifs.
       </ThemedText>
@@ -110,12 +107,12 @@ export default function Regles() {
         <ThemedText type="small" themeColor="textSecondary">
           Consultation du
         </ThemedText>
-        <TextInput
-          style={[champ, styles.date]}
-          placeholder="AAAA-MM-JJ"
-          placeholderTextColor={theme.textSecondary}
-          value={brouillon.date_consultation}
-          onChangeText={(date_consultation) => setBrouillon({ ...brouillon, date_consultation })}
+        <ChampDate
+          style={styles.date}
+          placeholder="Date"
+          valeur={brouillon.date_consultation}
+          max={journeeDe(new Date(), fuseauDuTelephone())}
+          onChange={(date_consultation) => setBrouillon({ ...brouillon, date_consultation })}
         />
       </View>
       {message && <ThemedText themeColor="textSecondary">{message}</ThemedText>}
@@ -156,7 +153,7 @@ function CarteRegle({ regle, onModifier, onArchiver }: { regle: Regle; onModifie
   return (
     <View style={[styles.carte, { backgroundColor: theme.backgroundElement }, archivee && styles.attenue]}>
       <ThemedText type="small" themeColor="textSecondary">
-        {libelleDeCategorie(regle.categorie)} · consultation du {regle.date_consultation}
+        {libelleDeCategorie(regle.categorie)} · consultation du {libelleDeJournee(regle.date_consultation)}
       </ThemedText>
       <ThemedText>{regle.texte}</ThemedText>
       <View style={styles.actions}>

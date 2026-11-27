@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** needs-triage
+**Status:** done
 
 Réglages aujourd'hui dispersés :
 
@@ -14,7 +14,13 @@ Réglages aujourd'hui dispersés :
 - Onglet Règles : Règles du médecin et date de consultation.
 - Aucun endroit pour le compte (déconnexion) ni pour l'export (ticket 20).
 
-- [ ] Définir les sections et leur ordre (ex. : Compte, Profil, Notifications, Santé connectée, Rendez-vous du samedi, Données).
-- [ ] Déplacer les réglages dispersés dans ces sections ; supprimer les doublons.
-- [ ] Accès à la page depuis un endroit fixe et visible (onglet ou icône d'en-tête), pas seulement depuis le Dashboard.
-- [ ] Prévoir la place de l'export des données (ticket 20).
+- [x] Définir les sections et leur ordre (ex. : Compte, Profil, Notifications, Santé connectée, Rendez-vous du samedi, Données).
+- [x] Déplacer les réglages dispersés dans ces sections ; supprimer les doublons.
+- [x] Accès à la page depuis un endroit fixe et visible (onglet ou icône d'en-tête), pas seulement depuis le Dashboard.
+- [x] Prévoir la place de l'export des données (ticket 20).
+
+## Avancement
+
+- Onglet « Réglages » à la place de l'onglet « Médecin » : menu de sections (Profil et Pesées, Règles du médecin, Notifications, Santé connectée, Rendez-vous du samedi, Données, Compte), chacune ouvrant son écran (`app/src/app/reglages/`).
+- Objectifs ne garde que les Objectifs, avec un lien vers Profil et Pesées ; Samedi renvoie vers ses réglages ; la déconnexion quitte le Dashboard pour la section Compte.
+- Données : place réservée à l'export (ticket 20), non cliquable pour l'instant.

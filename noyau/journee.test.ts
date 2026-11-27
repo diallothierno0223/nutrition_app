@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { estUneJourneeValide, journeeDe, libelleDuTypeDeRepas, typeDeRepas } from "./index.ts";
+import {
+  depuisJournee,
+  estUneJourneeValide,
+  journeeDe,
+  libelleDHeure,
+  libelleDeJournee,
+  libelleDuTypeDeRepas,
+  typeDeRepas,
+  versHeure,
+  versJournee,
+} from "./index.ts";
 
 describe("validation d'une date de Journée (AAAA-MM-JJ)", () => {
   it("accepte une date réelle", () => {
@@ -74,5 +84,42 @@ describe("Type de repas", () => {
   it("utilise l'heure locale, pas l'heure UTC", () => {
     // 10 h 30 UTC = 11 h 30 à Paris en hiver : déjeuner.
     expect(typeDeRepas(new Date("2026-11-26T10:30:00Z"), PARIS)).toBe("dejeuner");
+  });
+});
+
+describe("libelleDeJournee", () => {
+  it("écrit la Journée en toutes lettres, jour de la semaine compris", () => {
+    expect(libelleDeJournee("2026-11-28")).toBe("samedi 28 novembre 2026");
+    expect(libelleDeJournee("2027-01-01")).toBe("vendredi 1er janvier 2027");
+    expect(libelleDeJournee("2024-02-29")).toBe("jeudi 29 février 2024");
+  });
+
+  it("renvoie le texte tel quel s'il n'est pas une Journée valide", () => {
+    expect(libelleDeJournee("2026-02-30")).toBe("2026-02-30");
+  });
+});
+
+describe("libelleDHeure", () => {
+  it("écrit l'heure à la française", () => {
+    expect(libelleDHeure("21:00")).toBe("21 h 00");
+    expect(libelleDHeure("07:05")).toBe("7 h 05");
+  });
+
+  it("renvoie le texte tel quel s'il n'est pas une heure valide", () => {
+    expect(libelleDHeure("25:00")).toBe("25:00");
+  });
+});
+
+describe("versJournee et depuisJournee", () => {
+  it("passent d'une date locale à sa Journée et inversement", () => {
+    expect(versJournee(new Date(2026, 10, 28, 23, 59))).toBe("2026-11-28");
+    const date = depuisJournee("2026-11-28");
+    expect([date.getFullYear(), date.getMonth(), date.getDate()]).toEqual([2026, 10, 28]);
+  });
+});
+
+describe("versHeure", () => {
+  it("donne l'heure HH:MM d'une date locale", () => {
+    expect(versHeure(new Date(2026, 10, 28, 7, 5))).toBe("07:05");
   });
 });

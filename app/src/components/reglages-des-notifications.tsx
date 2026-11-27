@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { Bouton } from "@/components/bouton";
-import { Champ } from "@/components/champ";
+import { ChampHeure } from "@/components/champ-date-heure";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { chargerReglagesDesNotifications, enregistrerReglagesDesNotifications } from "@/donnees/reglages";
@@ -16,7 +16,6 @@ import {
 } from "@/notifications/programmation";
 import {
   TYPES_DE_NOTIFICATION,
-  estUneHeureValide,
   libelleDeNotification,
   type ReglagesDesNotifications as Reglages,
 } from "@noyau";
@@ -36,10 +35,8 @@ export function ReglagesDesNotifications() {
 
   if (!reglages) return message ? <ThemedText themeColor="textSecondary">{message}</ThemedText> : null;
 
-  const valides = TYPES_DE_NOTIFICATION.every((t) => estUneHeureValide(reglages[t].heure));
-
   async function enregistrer() {
-    if (!reglages || !valides) return;
+    if (!reglages) return;
     setMessage(null);
     if (await envoyer(() => enregistrerReglagesDesNotifications(reglages))) {
       // Enregistrer ses réglages vaut accord : la permission est redemandée si elle avait été refusée.
@@ -70,12 +67,12 @@ export function ReglagesDesNotifications() {
           <ThemedText type="small" style={styles.libelle}>
             {libelleDeNotification(type)}
           </ThemedText>
-          <Champ
+          <ChampHeure
             style={styles.heure}
-            placeholder="HH:MM"
-            value={reglages[type].heure}
-            editable={reglages[type].active}
-            onChangeText={(heure) => setReglages({ ...reglages, [type]: { ...reglages[type], heure } })}
+            placeholder="Heure"
+            valeur={reglages[type].heure}
+            desactive={!reglages[type].active}
+            onChange={(heure) => setReglages({ ...reglages, [type]: { ...reglages[type], heure } })}
           />
           <Bouton
             libelle={reglages[type].active ? "Activée" : "Désactivée"}
@@ -84,9 +81,8 @@ export function ReglagesDesNotifications() {
           />
         </View>
       ))}
-      {!valides && <ThemedText themeColor="textSecondary">Heure invalide (format HH:MM, par exemple 21:00).</ThemedText>}
       {(erreur ?? message) && <ThemedText themeColor="textSecondary">{erreur ?? message}</ThemedText>}
-      <Bouton libelle="Enregistrer les notifications" variante="secondaire" onPress={enregistrer} desactive={!valides} enCours={envoi} />
+      <Bouton libelle="Enregistrer les notifications" variante="secondaire" onPress={enregistrer} enCours={envoi} />
       {etat && (
         <ThemedText type="small" themeColor="textSecondary">
           {etat.autorisees ? "Permission accordée" : "Permission refusée"} · {etat.programmees} programmée(s)
@@ -106,5 +102,5 @@ const styles = StyleSheet.create({
   bloc: { gap: Spacing.two },
   ligne: { flexDirection: "row", alignItems: "center", gap: Spacing.two },
   libelle: { flex: 1 },
-  heure: { width: 80, textAlign: "center" },
+  heure: { width: 100 },
 });

@@ -2,8 +2,6 @@ import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, StyleSheet } from "react-native";
 
-import { useSession } from "@/auth/session";
-import { Bouton } from "@/components/bouton";
 import { CompteurEau } from "@/components/compteur-eau";
 import { CourbeDePoids } from "@/components/courbe-de-poids";
 import { Ecran } from "@/components/ecran";
@@ -24,7 +22,6 @@ import {
 import { listerPesees, type Pesee } from "@/donnees/profil";
 import { fuseauDuTelephone, repasDeLaJournee, type RepasDetaille } from "@/donnees/repas";
 import { useTheme } from "@/hooks/use-theme";
-import { supabase } from "@/lib/supabase";
 import { rafraichirNotifications } from "@/notifications/programmation";
 import { synchroniserSante } from "@/sante/health-connect";
 import {
@@ -54,7 +51,6 @@ type DonneesDuJour = {
 };
 
 export default function Dashboard() {
-  const { session } = useSession();
   const theme = useTheme();
   const [donnees, setDonnees] = useState<DonneesDuJour | null>(null);
   const [erreur, setErreur] = useState(false);
@@ -155,12 +151,6 @@ export default function Dashboard() {
           </ThemedText>
         </Pressable>
       ))}
-
-      <ThemedText type="small" themeColor="textSecondary">
-        Connecté : {session?.user.email}
-      </ThemedText>
-      <Bouton libelle="Réglages" variante="secondaire" onPress={() => router.push("/reglages")} />
-      <Bouton libelle="Se déconnecter" variante="secondaire" onPress={() => supabase.auth.signOut()} />
     </Ecran>
   );
 }

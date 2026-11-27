@@ -56,3 +56,58 @@ export function typeDeRepas(instant: Date, fuseau: string): TypeDeRepas {
   if (heure < 18) return "collation";
   return "diner";
 }
+
+const HEURE = /^([01]\d|2[0-3]):([0-5]\d)$/;
+
+/** Vrai si le texte est une heure au format HH:MM (« 21:00 »). */
+export function estUneHeureValide(heure: string): boolean {
+  return HEURE.test(heure);
+}
+
+/** L'heure et la minute d'une heure valide (« 21:00 » → 21, 0). */
+export function heureEtMinute(heure: string): { heure: number; minute: number } {
+  const [h = "0", m = "0"] = heure.split(":");
+  return { heure: Number(h), minute: Number(m) };
+}
+
+const deuxChiffres = (n: number) => String(n).padStart(2, "0");
+
+/** Année, mois et jour d'une Journée valide. */
+const partiesDeJournee = (journee: string) => journee.split("-").map(Number) as [number, number, number];
+
+const JOURS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
+const MOIS = [
+  "janvier", "février", "mars", "avril", "mai", "juin",
+  "juillet", "août", "septembre", "octobre", "novembre", "décembre",
+];
+
+/** « samedi 28 novembre 2026 », « vendredi 1er janvier 2027 » ; un texte invalide est renvoyé tel quel. */
+export function libelleDeJournee(journee: string): string {
+  if (!estUneJourneeValide(journee)) return journee;
+  const [annee, mois, jour] = partiesDeJournee(journee);
+  const jourDeLaSemaine = JOURS[new Date(Date.UTC(annee, mois - 1, jour)).getUTCDay()];
+  return `${jourDeLaSemaine} ${jour === 1 ? "1er" : jour} ${MOIS[mois - 1]} ${annee}`;
+}
+
+/** « 21 h 00 », « 7 h 05 » ; un texte invalide est renvoyé tel quel. */
+export function libelleDHeure(heure: string): string {
+  if (!estUneHeureValide(heure)) return heure;
+  const { heure: h, minute } = heureEtMinute(heure);
+  return `${h} h ${deuxChiffres(minute)}`;
+}
+
+/** La Journée d'une date, lue dans le fuseau du téléphone (celui où le sélecteur de date l'a créée). */
+export function versJournee(date: Date): string {
+  return `${date.getFullYear()}-${deuxChiffres(date.getMonth() + 1)}-${deuxChiffres(date.getDate())}`;
+}
+
+/** Une Journée valide en date locale, à midi (pour ouvrir le sélecteur de date sur ce jour). */
+export function depuisJournee(journee: string): Date {
+  const [annee, mois, jour] = partiesDeJournee(journee);
+  return new Date(annee, mois - 1, jour, 12);
+}
+
+/** L'heure HH:MM d'une date, lue dans le fuseau du téléphone. */
+export function versHeure(date: Date): string {
+  return `${deuxChiffres(date.getHours())}:${deuxChiffres(date.getMinutes())}`;
+}

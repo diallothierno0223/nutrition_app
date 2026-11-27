@@ -1,6 +1,7 @@
 // Notifications locales : réglages (heure, activée) et contenu, calculé à partir de la Journée en cours.
 import { objectifsRestants, type ObjectifsJournaliers } from "./jauges.ts";
 import { NUTRIMENTS, libelleDuNutriment, sensDuNutriment, uniteDuNutriment, type Nutriment } from "./nutriments.ts";
+import { estUneHeureValide } from "./journee.ts";
 import type { ValeursNutritionnelles } from "./repas.ts";
 
 export const TYPES_DE_NOTIFICATION = ["matin", "midi", "soir", "samedi"] as const;
@@ -27,18 +28,6 @@ export const NOTIFICATIONS_PAR_DEFAUT: ReglagesDesNotifications = {
   soir: { heure: "21:00", active: true },
   samedi: { heure: "09:00", active: true },
 };
-
-const HEURE = /^([01]\d|2[0-3]):([0-5]\d)$/;
-
-export function estUneHeureValide(heure: string): boolean {
-  return HEURE.test(heure);
-}
-
-/** L'heure et la minute d'un réglage valide (« 21:00 » → 21, 0). */
-export function heureEtMinute(heure: string): { heure: number; minute: number } {
-  const [h = "0", m = "0"] = heure.split(":");
-  return { heure: Number(h), minute: Number(m) };
-}
 
 /** Lit les réglages enregistrés ; tout réglage absent ou invalide prend sa valeur par défaut. */
 export function lireReglagesDesNotifications(brut: unknown): ReglagesDesNotifications {

@@ -1,25 +1,15 @@
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { Bouton } from "@/components/bouton";
 import { Champ } from "@/components/champ";
 import { Ecran } from "@/components/ecran";
-import { SectionPesees } from "@/components/section-pesees";
-import { SectionProfil } from "@/components/section-profil";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { chargerObjectifEau } from "@/donnees/hydratation";
 import { chargerObjectifs, enregistrerObjectifs } from "@/donnees/objectifs";
-import {
-  chargerProfil,
-  datesDeModification,
-  estimerObjectifs,
-  listerPesees,
-  type Pesee,
-  type Profil,
-  type ResultatEstimation,
-} from "@/donnees/profil";
+import { datesDeModification, estimerObjectifs, type ResultatEstimation } from "@/donnees/profil";
 import { lireNombre, versTexte } from "@/lib/saisie";
 import {
   NUTRIMENTS,
@@ -57,8 +47,6 @@ function depuisSaisie(saisie: Saisie): ObjectifsJournaliers | undefined {
 }
 
 type Etat = {
-  profil: Profil;
-  pesees: Pesee[];
   /** Les Objectifs enregistrés, affichés à côté d'une proposition. */
   actuels: Saisie;
   /** Ce qui sera appliqué : les Objectifs actuels, ou la proposition de l'IA modifiée à la main. */
@@ -69,7 +57,7 @@ type Etat = {
   sansObjectifs: boolean;
 };
 
-export default function ObjectifsEtProfil() {
+export default function Objectifs() {
   const [etat, setEtat] = useState<Etat | null>(null);
   const [proposition, setProposition] = useState<ResultatEstimation | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -78,12 +66,10 @@ export default function ObjectifsEtProfil() {
 
   // Recharger écarte toute proposition ouverte : on n'applique jamais autre chose que ce qui est affiché.
   const charger = useCallback(() => {
-    Promise.all([chargerProfil(), listerPesees(), chargerObjectifs(), chargerObjectifEau(), datesDeModification()]).then(
-      ([profil, pesees, objectifs, eauMl, dates]) => {
+    Promise.all([chargerObjectifs(), chargerObjectifEau(), datesDeModification()]).then(
+      ([objectifs, eauMl, dates]) => {
         setProposition(null);
         setEtat({
-          profil,
-          pesees,
           actuels: versSaisie(objectifs),
           saisie: versSaisie(objectifs),
           eauLitres: eauMl === null ? "" : String(eauMl / 1000),
@@ -129,7 +115,7 @@ export default function ObjectifsEtProfil() {
 
   if (!etat) {
     return (
-      <Ecran titre="Objectifs & Profil">
+      <Ecran titre="Objectifs">
         {message && <ThemedText themeColor="textSecondary">{message}</ThemedText>}
       </Ecran>
     );
@@ -138,10 +124,7 @@ export default function ObjectifsEtProfil() {
   const gardeFou = proposition?.garde_fou;
 
   return (
-    <Ecran titre="Objectifs & Profil">
-      <SectionProfil profil={etat.profil} onEnregistre={charger} />
-      <SectionPesees pesees={etat.pesees} onChange={charger} />
-
+    <Ecran titre="Objectifs">
       <ThemedText type="smallBold">Objectifs journaliers</ThemedText>
       {etat.sansObjectifs && !proposition && (
         <ThemedText themeColor="textSecondary">
@@ -154,6 +137,11 @@ export default function ObjectifsEtProfil() {
           nouvelle estimation.
         </ThemedText>
       )}
+      <Bouton
+        libelle="Mon Profil et mes Pesées"
+        variante="secondaire"
+        onPress={() => router.push("/reglages/profil")}
+      />
       <Bouton
         libelle={etat.sansObjectifs ? "Estimer mes Objectifs avec l'IA" : "Réestimer avec l'IA"}
         variante="secondaire"

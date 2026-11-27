@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 
 import { Bouton } from "@/components/bouton";
@@ -35,31 +35,22 @@ export function ReglagesDuSamedi() {
   const { envoi, erreur, envoyer } = useEnvoi();
   const [message, setMessage] = useState<string | null>(null);
 
-  async function ouvrir() {
-    setMessage(null);
-    await envoyer(async () => {
-      const r = await chargerReglagesDuSamedi();
-      setSaisie(Object.fromEntries(CHAMPS.map(({ cle }) => [cle, String(r[cle])])) as Saisie);
-    });
-  }
+  useEffect(() => {
+    chargerReglagesDuSamedi().then(
+      (r) => setSaisie(Object.fromEntries(CHAMPS.map(({ cle }) => [cle, String(r[cle])])) as Saisie),
+      () => setMessage("La base ne répond pas."),
+    );
+  }, []);
 
   const reglages = saisie && lire(saisie);
 
   async function enregistrer() {
     if (reglages && (await envoyer(() => enregistrerReglagesDuSamedi(reglages)))) {
-      setSaisie(null);
       setMessage("Réglages enregistrés : ils serviront au prochain Rendez-vous.");
     }
   }
 
-  if (!saisie) {
-    return (
-      <View style={styles.bloc}>
-        <Bouton libelle="Réglages du samedi" variante="secondaire" onPress={ouvrir} enCours={envoi} />
-        {(message ?? erreur) && <ThemedText themeColor="textSecondary">{message ?? erreur}</ThemedText>}
-      </View>
-    );
-  }
+  if (!saisie) return message ? <ThemedText themeColor="textSecondary">{message}</ThemedText> : null;
 
   return (
     <View style={styles.bloc}>
@@ -73,16 +64,16 @@ export function ReglagesDuSamedi() {
             style={styles.champ}
             keyboardType="number-pad"
             value={saisie[cle]}
-            onChangeText={(texte) => setSaisie({ ...saisie, [cle]: texte })}
+            onChangeText={(texte) => {
+              setSaisie({ ...saisie, [cle]: texte });
+              setMessage(null);
+            }}
           />
         </View>
       ))}
       {!reglages && <ThemedText themeColor="textSecondary">Valeurs hors limites (au moins une portion par Recette).</ThemedText>}
-      {erreur && <ThemedText themeColor="textSecondary">{erreur}</ThemedText>}
-      <View style={styles.ligne}>
-        <Bouton libelle="Enregistrer" variante="secondaire" onPress={enregistrer} desactive={!reglages} enCours={envoi} />
-        <Bouton libelle="Annuler" variante="secondaire" onPress={() => setSaisie(null)} desactive={envoi} />
-      </View>
+      {(erreur ?? message) && <ThemedText themeColor="textSecondary">{erreur ?? message}</ThemedText>}
+      <Bouton libelle="Enregistrer" variante="secondaire" onPress={enregistrer} desactive={!reglages} enCours={envoi} />
     </View>
   );
 }
