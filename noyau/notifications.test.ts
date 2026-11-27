@@ -48,7 +48,7 @@ describe("notification du soir", () => {
       eauMl: 0,
       objectifEauMl: null,
     });
-    expect(corps).toBe("Reste : 1200 kcal.");
+    expect(corps).toBe("Reste : 1 200 kcal.");
   });
 
   it("félicite quand tout est atteint", () => {
@@ -68,7 +68,7 @@ describe("autres notifications", () => {
   it("rappelle le matin le petit-déjeuner, l'eau et l'objectif du jour", () => {
     expect(contenuDeNotification("matin", contexte)).toEqual({
       titre: "Bonjour",
-      corps: "Petit-déjeuner et un verre d'eau. Objectif du jour : 2200 kcal, AGS 18 g au plus.",
+      corps: "Petit-déjeuner et un verre d'eau. Objectif du jour : 2 200 kcal, AGS 18 g au plus.",
     });
   });
 

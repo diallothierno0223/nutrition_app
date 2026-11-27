@@ -44,7 +44,7 @@ export function EnregistrerCommePlat({
       {erreur && <ThemedText themeColor="textSecondary">{erreur}</ThemedText>}
       <View style={styles.actions}>
         <Bouton libelle="Enregistrer" variante="secondaire" onPress={enregistrer} desactive={!nom.trim()} enCours={envoi} />
-        <Bouton libelle="Annuler" variante="secondaire" onPress={() => setNom(null)} desactive={envoi} />
+        <Bouton libelle="Annuler" variante="discret" onPress={() => setNom(null)} desactive={envoi} />
       </View>
     </View>
   );

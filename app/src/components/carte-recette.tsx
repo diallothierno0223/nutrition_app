@@ -8,7 +8,7 @@ import { Spacing } from "@/constants/theme";
 import { marquerARefaire, type RecetteEnregistree } from "@/donnees/samedi";
 import { useEnvoi } from "@/hooks/use-envoi";
 import { useTheme } from "@/hooks/use-theme";
-import { nutrimentsParPortion } from "@noyau";
+import { formaterNombre, nutrimentsParPortion } from "@noyau";
 
 /** Une Recette du Rendez-vous : repliée (nom, portions), dépliée (ingrédients, étapes, conservation, nutriments). */
 export function CarteRecette({ recette, actions }: { recette: RecetteEnregistree; actions?: ReactNode }) {
@@ -43,7 +43,7 @@ export function CarteRecette({ recette, actions }: { recette: RecetteEnregistree
           <ThemedText type="smallBold">Ingrédients</ThemedText>
           {recette.ingredients.map((i) => (
             <ThemedText key={i.id} type="small">
-              • {i.nom} : {i.quantite} {i.unite}
+              • {i.nom} : {formaterNombre(i.quantite)} {i.unite}
               {i.equivalent_cuisine ? ` (${i.equivalent_cuisine})` : ""}
             </ThemedText>
           ))}

@@ -3,11 +3,11 @@ import { StyleSheet, View } from "react-native";
 
 import { BarreDeJauge } from "@/components/barre-de-jauge";
 import { Bouton } from "@/components/bouton";
+import { Carte } from "@/components/carte";
 import { ThemedText } from "@/components/themed-text";
-import { formaterLitres } from "@/components/valeurs-nutritionnelles";
 import { Spacing } from "@/constants/theme";
 import { ajouterEau, annulerDernierAjout } from "@/donnees/hydratation";
-import { jaugeHydratation } from "@noyau";
+import { formaterLitres, jaugeHydratation } from "@noyau";
 
 /** Jauge d'Hydratation du jour et ajout rapide d'eau (+250 / +500 ml), avec annulation du dernier ajout. */
 export function CompteurEau({
@@ -36,12 +36,14 @@ export function CompteurEau({
   }
 
   return (
-    <View style={styles.bloc}>
+    <Carte>
       <View style={styles.entete}>
-        <ThemedText type="smallBold">Eau</ThemedText>
-        <ThemedText type="small" themeColor="textSecondary">
+        <ThemedText type="section" accessibilityRole="header">
+          Eau
+        </ThemedText>
+        <ThemedText themeColor="textSecondary">
           {formaterLitres(totalMl)}
-          {objectifMl !== null && ` / ${formaterLitres(objectifMl)}`}
+          {objectifMl !== null && ` sur ${formaterLitres(objectifMl)}`}
         </ThemedText>
       </View>
       <BarreDeJauge jauge={jaugeHydratation(totalMl, objectifMl)} />
@@ -50,18 +52,17 @@ export function CompteurEau({
         <Bouton libelle="+500 ml" variante="secondaire" onPress={() => agir(() => ajouterEau(500))} desactive={envoi} />
         <Bouton
           libelle="Annuler le dernier"
-          variante="secondaire"
+          variante="discret"
           onPress={() => agir(annulerDernierAjout)}
           desactive={envoi || totalMl === 0}
         />
       </View>
       {message && <ThemedText themeColor="textSecondary">{message}</ThemedText>}
-    </View>
+    </Carte>
   );
 }
 
 const styles = StyleSheet.create({
-  bloc: { gap: Spacing.two },
-  entete: { flexDirection: "row", justifyContent: "space-between" },
-  actions: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.two },
+  entete: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", gap: Spacing.two },
+  actions: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: Spacing.two + 2 },
 });

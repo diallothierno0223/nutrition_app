@@ -89,6 +89,13 @@ export function libelleDeJournee(journee: string): string {
   return `${jourDeLaSemaine} ${jour === 1 ? "1er" : jour} ${MOIS[mois - 1]} ${annee}`;
 }
 
+/** « 3 mars 2004 », « 1er janvier 2027 » : la Journée sans le jour de la semaine, pour tenir dans un champ. */
+export function libelleCourtDeJournee(journee: string): string {
+  if (!estUneJourneeValide(journee)) return journee;
+  const [annee, mois, jour] = partiesDeJournee(journee);
+  return `${jour === 1 ? "1er" : jour} ${MOIS[mois - 1]} ${annee}`;
+}
+
 /** « 21 h 00 », « 7 h 05 » ; un texte invalide est renvoyé tel quel. */
 export function libelleDHeure(heure: string): string {
   if (!estUneHeureValide(heure)) return heure;

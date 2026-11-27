@@ -127,7 +127,7 @@ export default function DetailPlat() {
           <Champ placeholder="Nom du Plat" value={nom} onChangeText={setNom} />
           <View style={styles.actions}>
             <Bouton libelle="Enregistrer" variante="secondaire" onPress={renommer} desactive={!nom.trim()} enCours={gestion.envoi} />
-            <Bouton libelle="Annuler" variante="secondaire" onPress={() => setNom(null)} />
+            <Bouton libelle="Annuler" variante="discret" onPress={() => setNom(null)} />
           </View>
         </>
       )}

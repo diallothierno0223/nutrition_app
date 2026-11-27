@@ -73,7 +73,7 @@ export function MomentDuRepas({ repas, onChange }: { repas: Repas; onChange: () 
       {erreur && <ThemedText themeColor="textSecondary">{erreur}</ThemedText>}
       <View style={styles.ligne}>
         <Bouton libelle="Enregistrer" variante="secondaire" onPress={enregistrer} desactive={!moment} enCours={envoi} />
-        <Bouton libelle="Annuler" variante="secondaire" onPress={() => setOuvert(false)} desactive={envoi} />
+        <Bouton libelle="Annuler" variante="discret" onPress={() => setOuvert(false)} desactive={envoi} />
       </View>
     </View>
   );

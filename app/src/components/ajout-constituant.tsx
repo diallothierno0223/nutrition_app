@@ -82,7 +82,7 @@ export function AjoutConstituant({ repasId, onChange }: { repasId: string; onCha
       {erreur && <ThemedText themeColor="textSecondary">{erreur}</ThemedText>}
       <View style={styles.actions}>
         <Bouton libelle="Ajouter" variante="secondaire" onPress={ajouter} desactive={!constituant} enCours={envoi} />
-        <Bouton libelle="Annuler" variante="secondaire" onPress={fermer} desactive={envoi} />
+        <Bouton libelle="Annuler" variante="discret" onPress={fermer} desactive={envoi} />
       </View>
     </View>
   );

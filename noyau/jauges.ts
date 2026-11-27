@@ -57,3 +57,30 @@ export function objectifsRestants(
     }),
   ) as ObjectifsJournaliers;
 }
+
+/** L'essentiel de la Journée, en tête du Dashboard : calories, ce qui en reste, et les alertes. */
+export type ResumeDuJour = {
+  calories: number;
+  objectifCalories: number | null;
+  /** Ce qui reste avant l'Objectif de calories (jamais négatif) ; null sans Objectif. */
+  resteCalories: number | null;
+  /** L'état de la jauge des calories (couleur du reste). */
+  etatCalories: EtatDeJauge;
+  /** Nutriments au-delà de leur Objectif (Plafond dépassé, Plage au-dessus de sa tolérance), dans l'ordre habituel. */
+  depasses: Nutriment[];
+  /** Plafonds à 80 % ou plus, pas encore dépassés. */
+  proches: Nutriment[];
+};
+
+export function resumeDuJour(totaux: ValeursNutritionnelles, objectifs: ObjectifsJournaliers): ResumeDuJour {
+  const etats = NUTRIMENTS.map((n) => [n, etatDeJauge(n, totaux[n], objectifs[n]).etat] as const);
+  const objectifCalories = objectifs.calories;
+  return {
+    calories: totaux.calories,
+    objectifCalories,
+    resteCalories: objectifCalories === null ? null : Math.max(0, Math.round(objectifCalories - totaux.calories)),
+    etatCalories: etatDeJauge("calories", totaux.calories, objectifCalories).etat,
+    depasses: etats.filter(([, etat]) => etat === "depasse").map(([n]) => n),
+    proches: etats.filter(([, etat]) => etat === "approche").map(([n]) => n),
+  };
+}

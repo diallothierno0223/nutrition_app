@@ -3,12 +3,16 @@
  * https://docs.expo.dev/guides/color-schemes/
  */
 
-import { Colors } from '@/constants/theme';
+import { Colors, CouleursJauge } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
-export function useTheme() {
-  const scheme = useColorScheme();
-  const theme = scheme === 'dark' ? 'dark' : 'light';
+const leTheme = (scheme: ReturnType<typeof useColorScheme>) => (scheme === 'dark' ? 'dark' : 'light');
 
-  return Colors[theme];
+export function useTheme() {
+  return Colors[leTheme(useColorScheme())];
+}
+
+/** Les couleurs des jauges (selon leur état) dans le thème du téléphone. */
+export function useCouleursJauge() {
+  return CouleursJauge[leTheme(useColorScheme())];
 }

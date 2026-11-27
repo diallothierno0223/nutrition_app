@@ -15,23 +15,17 @@ import { messageDEchec } from "@/synchro/reseau";
 import {
   NUTRIMENTS,
   SEUIL_ECART_GARDE_FOU,
-  TOLERANCE_PLAGE,
+  formaterNombre,
   libelleDuNutriment,
+  libelleDuSens,
   reestimationAProposer,
   sensDuNutriment,
   uniteDuNutriment,
   type Nutriment,
   type ObjectifsJournaliers,
-  type Sens,
 } from "@noyau";
 
 type Saisie = Record<Nutriment, string>;
-
-const AIDE_SENS: Record<Sens, string> = {
-  plafond: "à ne pas dépasser",
-  cible: "à atteindre",
-  plage: `à ±${TOLERANCE_PLAGE} %`,
-};
 
 const versSaisie = (o: ObjectifsJournaliers): Saisie =>
   Object.fromEntries(NUTRIMENTS.map((n) => [n, versTexte(o[n])])) as Saisie;
@@ -151,7 +145,8 @@ export default function Objectifs() {
       />
       {gardeFou && (
         <ThemedText type="small" themeColor="textSecondary">
-          Repère de la formule : {gardeFou.calories} kcal. Écart de la proposition : {gardeFou.ecart_pourcentage} %
+          Repère de la formule : {formaterNombre(gardeFou.calories, 0)} kcal. Écart de la proposition :{" "}
+          {formaterNombre(gardeFou.ecart_pourcentage)} %
           {gardeFou.alerte && ` — plus de ${SEUIL_ECART_GARDE_FOU} %, vérifie la justification avant d'appliquer`}.
         </ThemedText>
       )}
@@ -162,7 +157,7 @@ export default function Objectifs() {
             <View style={styles.libelle}>
               <ThemedText>{libelleDuNutriment(n)}</ThemedText>
               <ThemedText type="small" themeColor="textSecondary">
-                {uniteDuNutriment(n)}, {AIDE_SENS[sensDuNutriment(n)]}
+                {uniteDuNutriment(n)}, {libelleDuSens(sensDuNutriment(n))}
               </ThemedText>
             </View>
             <Champ
@@ -188,7 +183,7 @@ export default function Objectifs() {
         <View style={styles.libelle}>
           <ThemedText>Eau</ThemedText>
           <ThemedText type="small" themeColor="textSecondary">
-            litres, {AIDE_SENS.cible}
+            litres, {libelleDuSens("cible")}
           </ThemedText>
         </View>
         <Champ

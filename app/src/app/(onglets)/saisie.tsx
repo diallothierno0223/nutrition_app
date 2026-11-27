@@ -87,7 +87,7 @@ export default function Saisie() {
       {photo ? (
         <View style={styles.photo}>
           <Image source={{ uri: photo.uri }} style={styles.apercu} contentFit="cover" />
-          <Bouton libelle="Retirer la photo" variante="secondaire" onPress={() => setPhoto(null)} desactive={envoi} />
+          <Bouton libelle="Retirer la photo" variante="discret" onPress={() => setPhoto(null)} desactive={envoi} />
         </View>
       ) : (
         <View style={styles.actions}>

@@ -124,7 +124,7 @@ export default function Regles() {
         desactive={!brouillon.texte.trim()}
       />
       {brouillon.id && (
-        <Bouton libelle="Annuler la modification" variante="secondaire" onPress={() => setBrouillon(nouveauBrouillon())} />
+        <Bouton libelle="Annuler la modification" variante="discret" onPress={() => setBrouillon(nouveauBrouillon())} />
       )}
 
       <ThemedText type="smallBold">Consignes actives</ThemedText>

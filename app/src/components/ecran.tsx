@@ -12,7 +12,11 @@ export function Ecran({ titre, children }: PropsWithChildren<{ titre?: string }>
     <ThemedView style={styles.ecran}>
       <SafeAreaView style={styles.ecran} edges={titre ? undefined : ["bottom", "left", "right"]}>
         <ScrollView contentContainerStyle={styles.contenu} keyboardShouldPersistTaps="handled">
-          {titre && <ThemedText type="subtitle">{titre}</ThemedText>}
+          {titre && (
+            <ThemedText type="ecran" accessibilityRole="header">
+              {titre}
+            </ThemedText>
+          )}
           {children}
         </ScrollView>
       </SafeAreaView>

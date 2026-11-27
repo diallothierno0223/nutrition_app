@@ -3,8 +3,10 @@
 import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 
+import { Bouton } from "@/components/bouton";
+import { CadreDeChamp, HAUTEUR_DE_CHAMP } from "@/components/champ";
 import { ThemedText } from "@/components/themed-text";
-import { Spacing } from "@/constants/theme";
+import { Rayons, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
 import {
   depuisJournee,
@@ -12,7 +14,7 @@ import {
   estUneJourneeValide,
   heureEtMinute,
   libelleDHeure,
-  libelleDeJournee,
+  libelleCourtDeJournee,
   versHeure,
   versJournee,
 } from "@noyau";
@@ -20,6 +22,8 @@ import {
 type Commun = {
   /** Texte affiché tant qu'aucune valeur n'est choisie. */
   placeholder: string;
+  /** Libellé posé au-dessus du champ (« Date de naissance »). */
+  libelle?: string;
   desactive?: boolean;
   style?: StyleProp<ViewStyle>;
 };
@@ -39,11 +43,11 @@ function Declencheur({ texte, vide, desactive, style, onPress }: {
       accessibilityRole="button"
       style={({ pressed }) => [
         styles.champ,
-        { backgroundColor: theme.backgroundElement },
+        { backgroundColor: theme.carte, borderColor: theme.bordure },
         (pressed || desactive) && styles.attenue,
         style,
       ]}>
-      <ThemedText themeColor={vide ? "textSecondary" : "text"}>
+      <ThemedText themeColor={vide ? "textSecondary" : "text"} numberOfLines={1}>
         {texte}
       </ThemedText>
     </Pressable>
@@ -51,7 +55,7 @@ function Declencheur({ texte, vide, desactive, style, onPress }: {
 }
 
 /** Une date (Journée AAAA-MM-JJ, ou "" si aucune) choisie dans un calendrier. */
-export function ChampDate({ valeur, onChange, placeholder, desactive, style, min, max, effacable }: Commun & {
+export function ChampDate({ valeur, onChange, placeholder, libelle, desactive, style, min, max, effacable }: Commun & {
   valeur: string;
   onChange: (journee: string) => void;
   min?: string;
@@ -69,30 +73,31 @@ export function ChampDate({ valeur, onChange, placeholder, desactive, style, min
       onValueChange: (_evenement, date) => onChange(versJournee(date)),
     });
   }
-  const champ = (
+  const declencheur = (
     <Declencheur
-      texte={vide ? placeholder : libelleDeJournee(valeur)}
+      texte={vide ? placeholder : libelleCourtDeJournee(valeur)}
       vide={vide}
       desactive={desactive}
-      style={effacable ? styles.extensible : style}
+      style={effacable ? styles.extensible : undefined}
       onPress={ouvrir}
     />
   );
-  if (!effacable) return champ;
   return (
-    <View style={[styles.ligne, style]}>
-      {champ}
-      {!vide && !desactive && (
-        <Pressable onPress={() => onChange("")} accessibilityRole="button" accessibilityLabel="Effacer la date" hitSlop={8}>
-          <ThemedText themeColor="textSecondary">Effacer</ThemedText>
-        </Pressable>
+    <CadreDeChamp libelle={libelle} style={style}>
+      {effacable ? (
+        <View style={styles.ligne}>
+          {declencheur}
+          {!vide && !desactive && <Bouton libelle="Effacer" variante="discret" onPress={() => onChange("")} />}
+        </View>
+      ) : (
+        declencheur
       )}
-    </View>
+    </CadreDeChamp>
   );
 }
 
 /** Une heure (HH:MM) choisie sur une horloge 24 h. */
-export function ChampHeure({ valeur, onChange, placeholder, desactive, style }: Commun & {
+export function ChampHeure({ valeur, onChange, placeholder, libelle, desactive, style }: Commun & {
   valeur: string;
   onChange: (heure: string) => void;
 }) {
@@ -111,18 +116,20 @@ export function ChampHeure({ valeur, onChange, placeholder, desactive, style }: 
     });
   }
   return (
-    <Declencheur
-      texte={vide ? placeholder : libelleDHeure(valeur)}
-      vide={vide}
-      desactive={desactive}
-      style={style}
-      onPress={ouvrir}
-    />
+    <CadreDeChamp libelle={libelle} style={style}>
+      <Declencheur texte={vide ? placeholder : libelleDHeure(valeur)} vide={vide} desactive={desactive} onPress={ouvrir} />
+    </CadreDeChamp>
   );
 }
 
 const styles = StyleSheet.create({
-  champ: { borderRadius: 12, padding: Spacing.three, justifyContent: "center" },
+  champ: {
+    minHeight: HAUTEUR_DE_CHAMP,
+    borderRadius: Rayons.petit,
+    borderWidth: 1.5,
+    paddingHorizontal: 14,
+    justifyContent: "center",
+  },
   attenue: { opacity: 0.5 },
   ligne: { flexDirection: "row", alignItems: "center", gap: Spacing.two },
   extensible: { flex: 1 },

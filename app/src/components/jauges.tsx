@@ -2,40 +2,50 @@ import { StyleSheet, View } from "react-native";
 
 import { BarreDeJauge } from "@/components/barre-de-jauge";
 import { ThemedText } from "@/components/themed-text";
-import { formaterValeur } from "@/components/valeurs-nutritionnelles";
 import { Spacing } from "@/constants/theme";
+import { useCouleursJauge } from "@/hooks/use-theme";
 import {
   NUTRIMENTS,
   etatDeJauge,
+  formaterQuantite,
+  libelleDEtat,
   libelleDuNutriment,
-  type EtatDeJauge,
+  libelleDuSens,
+  sensDuNutriment,
   type ObjectifsJournaliers,
   type ValeursNutritionnelles,
 } from "@noyau";
 
-const MENTIONS: Partial<Record<EtatDeJauge, string>> = {
-  approche: "proche du plafond",
-  depasse: "dépassé",
-  en_dessous: "en dessous",
-};
-
-/** Les jauges du jour : consommation face à l'Objectif journalier, colorées selon leur état. */
+/**
+ * Les jauges du jour : consommation face à l'Objectif journalier, colorées selon leur état. Sous chaque nutriment,
+ * ce que demande son Objectif (« à ne pas dépasser », « à atteindre », « à ±10 % »).
+ */
 export function Jauges({ totaux, objectifs }: { totaux: ValeursNutritionnelles; objectifs: ObjectifsJournaliers }) {
+  const couleurs = useCouleursJauge();
   return (
     <View style={styles.liste}>
       {NUTRIMENTS.map((n) => {
         const objectif = objectifs[n];
         const jauge = etatDeJauge(n, totaux[n], objectif);
-        const mention = MENTIONS[jauge.etat];
+        const mention = libelleDEtat(jauge.etat);
         return (
           <View key={n} style={styles.jauge}>
             <View style={styles.entete}>
-              <ThemedText type="smallBold">{libelleDuNutriment(n)}</ThemedText>
-              <ThemedText type="small" themeColor="textSecondary">
-                {formaterValeur(n, totaux[n])}
-                {objectif !== null && ` / ${formaterValeur(n, objectif)}`}
-                {mention && ` · ${mention}`}
-              </ThemedText>
+              <View style={styles.nom}>
+                <ThemedText type="smallBold">{libelleDuNutriment(n)}</ThemedText>
+                {objectif !== null && <ThemedText type="detail">{libelleDuSens(sensDuNutriment(n))}</ThemedText>}
+              </View>
+              <View style={styles.valeurs}>
+                <ThemedText type="small" themeColor="textSecondary">
+                  {formaterQuantite(n, totaux[n])}
+                  {objectif !== null && ` / ${formaterQuantite(n, objectif)}`}
+                </ThemedText>
+                {mention && (
+                  <ThemedText type="detail" style={[styles.mention, { color: couleurs[jauge.etat] }]}>
+                    {mention}
+                  </ThemedText>
+                )}
+              </View>
             </View>
             <BarreDeJauge jauge={jauge} />
           </View>
@@ -46,7 +56,10 @@ export function Jauges({ totaux, objectifs }: { totaux: ValeursNutritionnelles; 
 }
 
 const styles = StyleSheet.create({
-  liste: { gap: Spacing.three },
-  jauge: { gap: Spacing.one },
-  entete: { flexDirection: "row", justifyContent: "space-between", gap: Spacing.two },
+  liste: { gap: Spacing.three - 2 },
+  jauge: { gap: Spacing.one + 1 },
+  entete: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", gap: Spacing.two },
+  nom: { flexShrink: 1 },
+  valeurs: { alignItems: "flex-end" },
+  mention: { fontWeight: 700 },
 });

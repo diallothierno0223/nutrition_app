@@ -1,6 +1,7 @@
 // Notifications locales : réglages (heure, activée) et contenu, calculé à partir de la Journée en cours.
 import { objectifsRestants, type ObjectifsJournaliers } from "./jauges.ts";
 import { NUTRIMENTS, libelleDuNutriment, sensDuNutriment, uniteDuNutriment, type Nutriment } from "./nutriments.ts";
+import { formaterLitres, formaterNombre } from "./affichage.ts";
 import { estUneHeureValide } from "./journee.ts";
 import type { ValeursNutritionnelles } from "./repas.ts";
 
@@ -54,8 +55,7 @@ export type ContenuDeNotification = { titre: string; corps: string };
 
 /** « 3,8 » ; les calories à l'unité, le reste au dixième (sans décimale inutile). */
 function quantite(nutriment: Nutriment, valeur: number): string {
-  const arrondie = uniteDuNutriment(nutriment) === "kcal" ? Math.round(valeur) : Math.round(valeur * 10) / 10;
-  return String(arrondie).replace(".", ",");
+  return formaterNombre(valeur, uniteDuNutriment(nutriment) === "kcal" ? 0 : 1);
 }
 
 /** « AGS » reste en capitales, les autres libellés passent en minuscules dans une phrase. */
@@ -64,7 +64,6 @@ const enMinuscules = (n: Nutriment) => {
   return libelle === libelle.toUpperCase() ? libelle : libelle.toLocaleLowerCase("fr-FR");
 };
 
-const litres = (ml: number) => `${String(Math.round(ml / 10) / 100).replace(".", ",")} L`;
 
 function contenuDuSoir({ totaux, objectifs, eauMl, objectifEauMl }: ContexteDuJour): string {
   const restants = objectifsRestants(objectifs, totaux);
@@ -89,7 +88,7 @@ function contenuDuSoir({ totaux, objectifs, eauMl, objectifEauMl }: ContexteDuJo
   if (reste.length > 0) lignes.push(`Reste : ${reste.join(", ")}.`);
   if (aCompleter.length > 0) lignes.push(`À compléter : ${aCompleter.join(", ")}.`);
   if (depasses.length > 0) lignes.push(`Déjà dépassé : ${depasses.join(", ")}.`);
-  if (objectifEauMl !== null && eauMl < objectifEauMl) lignes.push(`Eau : encore ${litres(objectifEauMl - eauMl)}.`);
+  if (objectifEauMl !== null && eauMl < objectifEauMl) lignes.push(`Eau : encore ${formaterLitres(objectifEauMl - eauMl)}.`);
   return lignes.length > 0 ? lignes.join("\n") : "Objectifs du jour atteints.";
 }
 
@@ -102,7 +101,7 @@ function contenuDuMatin({ objectifs }: ContexteDuJour): string {
 }
 
 function contenuDeMidi({ eauMl, objectifEauMl }: ContexteDuJour): string {
-  const eau = objectifEauMl !== null ? ` Eau : ${litres(eauMl)} sur ${litres(objectifEauMl)}.` : "";
+  const eau = objectifEauMl !== null ? ` Eau : ${formaterLitres(eauMl)} sur ${formaterLitres(objectifEauMl)}.` : "";
   return `Pense à saisir ton déjeuner.${eau}`;
 }
 

@@ -1,6 +1,7 @@
 // Liste de courses (voir GLOSSARY.md) : rangée par Recette (Recettes, puis petits-déjeuners, puis Ajouts manuels).
 // Un ingrédient commun reste dans chaque Recette avec sa propre case, et affiche le total des Recettes sélectionnées.
 // La liste est recalculée à partir de l'état (sélection, cases, ajouts) : rien ne se perd quand on change la sélection.
+import { formaterNombre } from "./affichage.ts";
 import type { Unite } from "./repas.ts";
 import type { CategorieDeRecette } from "./samedi.ts";
 
@@ -40,7 +41,7 @@ export type SectionDeCourses = { titre: string; lignes: LigneDeCourses[] };
 export const TITRE_AJOUTS_MANUELS = "Ajouts manuels";
 
 const cle = (nom: string, unite: Unite) => `${nom.trim().toLocaleLowerCase("fr-FR")}|${unite}`;
-const enFrancais = (n: number) => String(Math.round(n * 10) / 10).replace(".", ",");
+const enFrancais = (n: number) => formaterNombre(n);
 
 export function construireListeDeCourses(
   recettes: readonly RecettePourCourses[],

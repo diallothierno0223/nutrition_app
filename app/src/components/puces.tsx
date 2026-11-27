@@ -1,8 +1,45 @@
 import { Pressable, StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
-import { Spacing } from "@/constants/theme";
+import { Rayons, Spacing } from "@/constants/theme";
 import { useTheme } from "@/hooks/use-theme";
+
+/**
+ * Une puce de sélection : choisie = fond de la couleur principale, texte contrasté et gras ; sinon fond transparent
+ * et contour fin. Les puces servent uniquement à choisir (ce qui ouvre un écran est une ligne de liste).
+ */
+function Puce({
+  libelle,
+  choisie,
+  multiple = false,
+  onPress,
+}: {
+  libelle: string;
+  choisie: boolean;
+  /** Choix multiple : case à cocher (« ✓ » quand cochée) plutôt que bouton sélectionné. */
+  multiple?: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole={multiple ? "checkbox" : "button"}
+      accessibilityState={multiple ? { checked: choisie } : { selected: choisie }}
+      accessibilityLabel={libelle}
+      style={({ pressed }) => [
+        styles.puce,
+        choisie
+          ? { backgroundColor: theme.accent, borderColor: theme.accent }
+          : { backgroundColor: "transparent", borderColor: theme.bordure },
+        pressed && styles.appuyee,
+      ]}>
+      <ThemedText type={choisie ? "smallBold" : "small"} style={{ color: choisie ? theme.surAccent : theme.text }}>
+        {multiple && choisie ? `✓ ${libelle}` : libelle}
+      </ThemedText>
+    </Pressable>
+  );
+}
 
 /** Choix d'une valeur parmi quelques options, sous forme de puces. */
 export function Puces<T extends string>({
@@ -16,28 +53,14 @@ export function Puces<T extends string>({
   libelle: (option: T) => string;
   onChange: (option: T) => void;
 }) {
-  const theme = useTheme();
   return (
     <View style={styles.puces}>
-      {options.map((option) => {
-        const choisie = option === valeur;
-        return (
-          <Pressable
-            key={option}
-            onPress={() => onChange(option)}
-            style={[styles.puce, { backgroundColor: choisie ? theme.backgroundSelected : theme.backgroundElement }]}>
-            <ThemedText type={choisie ? "smallBold" : "small"}>{libelle(option)}</ThemedText>
-          </Pressable>
-        );
-      })}
+      {options.map((option) => (
+        <Puce key={option} libelle={libelle(option)} choisie={option === valeur} onPress={() => onChange(option)} />
+      ))}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  puces: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.two },
-  puce: { borderRadius: 999, paddingVertical: Spacing.two, paddingHorizontal: Spacing.three },
-});
 
 /** Choix de plusieurs options (chacune s'active ou se désactive d'un appui). */
 export function PucesMultiples<T extends string>({
@@ -51,23 +74,33 @@ export function PucesMultiples<T extends string>({
   libelle: (option: T) => string;
   onBasculer: (option: T) => void;
 }) {
-  const theme = useTheme();
   return (
     <View style={styles.puces}>
       {options.map((option) => {
         const choisie = choisies.includes(option);
         return (
-          <Pressable
+          <Puce
             key={option}
+            libelle={libelle(option)}
+            choisie={choisie}
+            multiple
             onPress={() => onBasculer(option)}
-            style={[styles.puce, { backgroundColor: choisie ? theme.backgroundSelected : theme.backgroundElement }]}>
-            <ThemedText type={choisie ? "smallBold" : "small"}>
-              {choisie ? "✓ " : ""}
-              {libelle(option)}
-            </ThemedText>
-          </Pressable>
+          />
         );
       })}
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  puces: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.two },
+  puce: {
+    minHeight: 44,
+    justifyContent: "center",
+    borderRadius: Rayons.puce,
+    borderWidth: 1.5,
+    paddingVertical: Spacing.two,
+    paddingHorizontal: Spacing.three,
+  },
+  appuyee: { opacity: 0.7 },
+});

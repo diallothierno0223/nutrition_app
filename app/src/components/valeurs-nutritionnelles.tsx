@@ -2,19 +2,12 @@ import { StyleSheet, View } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
-import { NUTRIMENTS, libelleDuNutriment, uniteDuNutriment, type Nutriment, type ValeursNutritionnelles } from "@noyau";
-
-/** Les calories à l'unité près, les grammes au dixième. */
-export function formaterValeur(nutriment: Nutriment, valeur: number): string {
-  const unite = uniteDuNutriment(nutriment);
-  const arrondie = unite === "kcal" ? Math.round(valeur) : Math.round(valeur * 10) / 10;
-  return `${arrondie} ${unite}`;
-}
-
-/** Un volume d'eau stocké en ml, affiché en litres : « 1,25 L ». */
-export function formaterLitres(ml: number): string {
-  return `${(Math.round(ml / 10) / 100).toLocaleString("fr-FR")} L`;
-}
+import {
+  NUTRIMENTS,
+  formaterQuantite,
+  libelleDuNutriment,
+  type ValeursNutritionnelles,
+} from "@noyau";
 
 /** Les nutriments d'un Repas ou d'une Journée, en grille compacte. */
 export function ValeursNutritionnelles({ valeurs }: { valeurs: ValeursNutritionnelles }) {
@@ -25,7 +18,7 @@ export function ValeursNutritionnelles({ valeurs }: { valeurs: ValeursNutritionn
           <ThemedText type="small" themeColor="textSecondary">
             {libelleDuNutriment(n)}
           </ThemedText>
-          <ThemedText type="smallBold">{formaterValeur(n, valeurs[n])}</ThemedText>
+          <ThemedText type="smallBold">{formaterQuantite(n, valeurs[n])}</ThemedText>
         </View>
       ))}
     </View>

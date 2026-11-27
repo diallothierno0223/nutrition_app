@@ -9,7 +9,13 @@ import { Spacing } from "@/constants/theme";
 import { useEnvoi } from "@/hooks/use-envoi";
 import { useTheme } from "@/hooks/use-theme";
 import { lireNombre } from "@/lib/saisie";
-import { changerEquivalentCuisine, changerQuantite, lireEquivalentCuisine, type Constituant } from "@noyau";
+import {
+  changerEquivalentCuisine,
+  changerQuantite,
+  formaterNombre,
+  lireEquivalentCuisine,
+  type Constituant,
+} from "@noyau";
 
 /** La correction en cours : une quantité en g/ml, ou un nombre d'ustensiles (équivalent en cuisine). */
 type Saisie = { en: "quantite" | "ustensiles"; texte: string };
@@ -55,7 +61,7 @@ export function CarteConstituant({ constituant, corriger, supprimer, onChange }:
     <View style={[styles.carte, { backgroundColor: theme.backgroundElement }]}>
       <ThemedText>{constituant.nom}</ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
-        {affiche.quantite} {affiche.unite}
+        {formaterNombre(affiche.quantite)} {affiche.unite}
         {affiche.equivalent_cuisine ? ` · ${affiche.equivalent_cuisine}` : ""}
       </ThemedText>
       <ValeursNutritionnelles valeurs={affiche} />
@@ -88,7 +94,7 @@ export function CarteConstituant({ constituant, corriger, supprimer, onChange }:
               desactive={!corrige}
               enCours={envoi}
             />
-            <Bouton libelle="Annuler" variante="secondaire" onPress={() => setSaisie(null)} desactive={envoi} />
+            <Bouton libelle="Annuler" variante="discret" onPress={() => setSaisie(null)} desactive={envoi} />
             <Bouton
               libelle="Supprimer"
               variante="secondaire"

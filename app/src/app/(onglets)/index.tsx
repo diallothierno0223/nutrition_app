@@ -1,17 +1,17 @@
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, StyleSheet } from "react-native";
 
 import { BandeauHorsLigne } from "@/components/bandeau-hors-ligne";
+import { Carte } from "@/components/carte";
 import { CompteurEau } from "@/components/compteur-eau";
-import { CourbeDePoids } from "@/components/courbe-de-poids";
 import { Ecran } from "@/components/ecran";
-import { ThemedText } from "@/components/themed-text";
 import { Jauges } from "@/components/jauges";
+import { LigneDeListe } from "@/components/ligne-de-liste";
 import { MoyenneGlobale } from "@/components/moyenne-globale";
+import { PoidsEtPas } from "@/components/poids-et-pas";
 import { RecapSemaine } from "@/components/recap-semaine";
-import { formaterValeur } from "@/components/valeurs-nutritionnelles";
-import { Spacing } from "@/constants/theme";
+import { ResumeDuJour } from "@/components/resume-du-jour";
+import { ThemedText } from "@/components/themed-text";
 import { chargerObjectifEau, eauDuJour } from "@/donnees/hydratation";
 import {
   chargerObjectifs,
@@ -22,16 +22,19 @@ import {
 } from "@/donnees/objectifs";
 import { listerPesees, type Pesee } from "@/donnees/profil";
 import { fuseauDuTelephone, repasDeLaJournee, type RepasDetaille } from "@/donnees/repas";
-import { useTheme } from "@/hooks/use-theme";
+import { useCouleursJauge } from "@/hooks/use-theme";
 import { rafraichirNotifications } from "@/notifications/programmation";
 import { synchroniserSante } from "@/sante/health-connect";
 import { surRejeu } from "@/synchro/synchro";
 import {
+  formaterQuantite,
   journeeDe,
   journeesDeLaSemaine,
+  libelleDHeure,
   libelleDuTypeDeRepas,
   lundiDe,
   totauxDuRepas,
+  versHeure,
   type ObjectifsJournaliers,
   type ValeursNutritionnelles,
 } from "@noyau";
@@ -53,7 +56,6 @@ type DonneesDuJour = {
 };
 
 export default function Dashboard() {
-  const theme = useTheme();
   const [donnees, setDonnees] = useState<DonneesDuJour | null>(null);
   const [erreur, setErreur] = useState(false);
 
@@ -101,20 +103,44 @@ export default function Dashboard() {
   useEffect(() => surRejeu(charger), [charger]);
 
   const journal = donnees?.repas;
+  const couleurs = useCouleursJauge();
 
   return (
     <Ecran titre="Aujourd'hui">
       <BandeauHorsLigne />
       {erreur && <ThemedText themeColor="textSecondary">La base ne répond pas.</ThemedText>}
 
-      {donnees && <Jauges totaux={donnees.totaux} objectifs={donnees.objectifs} />}
+      {donnees && <ResumeDuJour totaux={donnees.totaux} objectifs={donnees.objectifs} />}
 
       {donnees && (
-        <CompteurEau
-          totalMl={donnees.eauMl}
-          objectifMl={donnees.objectifEauMl}
-          onChange={charger}
-        />
+        <Carte titre="Nutriments" detail="Repas analysés du jour">
+          <Jauges totaux={donnees.totaux} objectifs={donnees.objectifs} />
+        </Carte>
+      )}
+
+      {donnees && <CompteurEau totalMl={donnees.eauMl} objectifMl={donnees.objectifEauMl} onChange={charger} />}
+
+      {journal && (
+        <Carte titre="Repas du jour">
+          {journal.length === 0 && <ThemedText themeColor="textSecondary">Aucun Repas enregistré aujourd'hui.</ThemedText>}
+          {journal.map((repas) => (
+            <LigneDeListe
+              key={repas.id}
+              surtitre={`${libelleDuTypeDeRepas(repas.type_repas)} · ${heureDuRepas(repas.mange_le)}`}
+              titre={repas.description || "Repas en photo"}
+              detail={repas.enFile && repas.statut === "analyse" ? "Envoi en attente" : undefined}
+              valeur={
+                repas.statut === "analyse"
+                  ? formaterQuantite("calories", totauxDuRepas(repas.constituants).calories)
+                  : repas.enFile
+                    ? "en attente de réseau"
+                    : "en attente"
+              }
+              couleurValeur={repas.statut === "analyse" ? undefined : couleurs.en_dessous}
+              onPress={() => router.push({ pathname: "/repas/[id]", params: { id: repas.id } })}
+            />
+          ))}
+        </Carte>
       )}
 
       {donnees && (
@@ -129,40 +155,10 @@ export default function Dashboard() {
         <MoyenneGlobale aujourdhui={donnees.journee} objectifs={donnees.objectifs} rafraichissement={donnees.chargement} />
       )}
 
-      {donnees?.pas != null && (
-        <ThemedText type="smallBold">
-          Pas du jour : {donnees.pas.toLocaleString("fr-FR")}
-        </ThemedText>
-      )}
-
-      <ThemedText type="smallBold">Poids</ThemedText>
-      {donnees && <CourbeDePoids pesees={donnees.pesees} />}
-
-      <ThemedText type="smallBold">Repas du jour</ThemedText>
-      {journal?.length === 0 && <ThemedText themeColor="textSecondary">Aucun Repas enregistré aujourd'hui.</ThemedText>}
-      {journal?.map((repas) => (
-        <Pressable
-          key={repas.id}
-          onPress={() => router.push({ pathname: "/repas/[id]", params: { id: repas.id } })}
-          style={[styles.carte, { backgroundColor: theme.backgroundElement }]}>
-          <ThemedText type="smallBold">
-            {libelleDuTypeDeRepas(repas.type_repas)} ·{" "}
-            {repas.statut === "analyse"
-              ? formaterValeur("calories", totauxDuRepas(repas.constituants).calories)
-              : repas.enFile
-                ? "en attente de réseau"
-                : "en attente"}
-            {repas.enFile && repas.statut === "analyse" && " · envoi en attente"}
-          </ThemedText>
-          <ThemedText type="small" themeColor="textSecondary" numberOfLines={2}>
-            {repas.description || "Repas en photo"}
-          </ThemedText>
-        </Pressable>
-      ))}
+      {donnees && <PoidsEtPas pesees={donnees.pesees} pas={donnees.pas} />}
     </Ecran>
   );
 }
 
-const styles = StyleSheet.create({
-  carte: { borderRadius: 12, padding: Spacing.three, gap: Spacing.one },
-});
+/** « 13 h 05 » : l'heure du Repas, dans le fuseau du téléphone. */
+const heureDuRepas = (mangeLe: string) => libelleDHeure(versHeure(new Date(mangeLe)));

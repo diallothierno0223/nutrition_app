@@ -10,7 +10,7 @@ import { enregistrerPesee, supprimerPesee, type Pesee } from "@/donnees/profil";
 import { fuseauDuTelephone } from "@/donnees/repas";
 import { lireNombre } from "@/lib/saisie";
 import { messageDEchec } from "@/synchro/reseau";
-import { POIDS_MAX_KG, POIDS_MIN_KG, journeeDe, libelleDeJournee } from "@noyau";
+import { POIDS_MAX_KG, POIDS_MIN_KG, formaterNombre, journeeDe, libelleDeJournee } from "@noyau";
 
 /** Ajout d'une Pesée (une par date) et liste des dernières, supprimables. */
 export function SectionPesees({ pesees, onChange }: { pesees: Pesee[]; onChange: () => void }) {
@@ -56,9 +56,9 @@ export function SectionPesees({ pesees, onChange }: { pesees: Pesee[]; onChange:
       {pesees.slice(0, 5).map((p) => (
         <View key={p.id} style={styles.pesee}>
           <ThemedText>
-            {libelleDeJournee(p.pese_le)} · {p.poids_kg} kg
+            {libelleDeJournee(p.pese_le)} · {formaterNombre(p.poids_kg)} kg
           </ThemedText>
-          <Bouton libelle="Supprimer" variante="secondaire" onPress={() => supprimer(p.id)} />
+          <Bouton libelle="Supprimer" variante="discret" onPress={() => supprimer(p.id)} />
         </View>
       ))}
     </View>
