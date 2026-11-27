@@ -6,7 +6,6 @@ import { Champ } from "@/components/champ";
 import { ThemedText } from "@/components/themed-text";
 import { ValeursNutritionnelles } from "@/components/valeurs-nutritionnelles";
 import { Spacing } from "@/constants/theme";
-import { corrigerConstituant, supprimerConstituant, type ConstituantEnregistre } from "@/donnees/repas";
 import { useEnvoi } from "@/hooks/use-envoi";
 import { useTheme } from "@/hooks/use-theme";
 import { lireNombre } from "@/lib/saisie";
@@ -26,8 +25,17 @@ function apercu(constituant: Constituant, saisie: Saisie): Constituant | null {
   }
 }
 
-/** Un Constituant d'un Repas analysé, corrigeable sans appel à l'IA (quantité ou mesures), ou supprimable. */
-export function CarteConstituant({ constituant, onChange }: { constituant: ConstituantEnregistre; onChange: () => void }) {
+type Props = {
+  constituant: Constituant;
+  /** Enregistre le Constituant corrigé (dans un Repas ou dans un Plat). */
+  corriger: (corrige: Constituant) => Promise<void>;
+  supprimer: () => Promise<void>;
+  /** Appelé après une correction ou une suppression réussie. */
+  onChange: () => void;
+};
+
+/** Un Constituant (d'un Repas ou d'un Plat), corrigeable sans appel à l'IA (quantité ou ustensiles), ou supprimable. */
+export function CarteConstituant({ constituant, corriger, supprimer, onChange }: Props) {
   const theme = useTheme();
   const [saisie, setSaisie] = useState<Saisie | null>(null);
   const { envoi, erreur, envoyer } = useEnvoi();
@@ -76,7 +84,7 @@ export function CarteConstituant({ constituant, onChange }: { constituant: Const
             <Bouton
               libelle="Enregistrer"
               variante="secondaire"
-              onPress={() => corrige && agir(() => corrigerConstituant(constituant.id, corrige))}
+              onPress={() => corrige && agir(() => corriger(corrige))}
               desactive={!corrige}
               enCours={envoi}
             />
@@ -84,7 +92,7 @@ export function CarteConstituant({ constituant, onChange }: { constituant: Const
             <Bouton
               libelle="Supprimer"
               variante="secondaire"
-              onPress={() => agir(() => supprimerConstituant(constituant.id))}
+              onPress={() => agir(supprimer)}
               desactive={envoi}
             />
           </View>

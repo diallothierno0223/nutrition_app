@@ -71,15 +71,28 @@ function ecrireEquivalent({ ustensile }: EquivalentCuisine, nombre: number): str
 export function changerQuantite(constituant: Constituant, quantite: number): Constituant {
   if (!(arrondi(quantite) > 0)) throw new Error("La quantité doit être positive.");
   if (!(constituant.quantite > 0)) throw new Error("Ce Constituant n'a pas de quantité de référence.");
-  const facteur = quantite / constituant.quantite;
+  return multiplier(constituant, quantite / constituant.quantite);
+}
+
+/** Une copie du Constituant dont quantité, équivalent en cuisine et nutriments sont multipliés par le facteur. */
+function multiplier(constituant: Constituant, facteur: number): Constituant {
   const equivalent = lireEquivalentCuisine(constituant.equivalent_cuisine);
-  const corrige: Constituant = {
+  const multiplie: Constituant = {
     ...constituant,
-    quantite: arrondi(quantite),
+    quantite: arrondi(constituant.quantite * facteur),
     equivalent_cuisine: equivalent ? ecrireEquivalent(equivalent, equivalent.nombre * facteur) : constituant.equivalent_cuisine,
   };
-  for (const n of NUTRIMENTS) corrige[n] = arrondi(constituant[n] * facteur);
-  return corrige;
+  for (const n of NUTRIMENTS) multiplie[n] = arrondi(constituant[n] * facteur);
+  return multiplie;
+}
+
+/**
+ * Les Constituants d'un Plat pour un Coefficient de portion (×0,5, ×1,5…) : des copies multipliées, jamais
+ * les Constituants du Plat eux-mêmes (modifier le Plat ensuite ne change pas le Repas).
+ */
+export function appliquerCoefficient(constituants: readonly Constituant[], coefficient: number): Constituant[] {
+  if (!(coefficient > 0)) throw new Error("Le Coefficient de portion doit être positif.");
+  return constituants.map((c) => multiplier(c, coefficient));
 }
 
 /** Corrige un Constituant en nombre d'ustensiles (« 2 louches » au lieu d'une). */

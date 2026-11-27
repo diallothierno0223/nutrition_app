@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   changerEquivalentCuisine,
+  appliquerCoefficient,
   changerQuantite,
   lireEquivalentCuisine,
   retirerValeurs,
@@ -113,5 +114,30 @@ describe("équivalent en cuisine", () => {
 
   it("refuse de corriger en ustensiles un Constituant sans équivalent lisible", () => {
     expect(() => changerEquivalentCuisine({ ...sauce, equivalent_cuisine: "une poignée" }, 2)).toThrow();
+  });
+});
+
+describe("Coefficient de portion", () => {
+  it("multiplie quantités, équivalents et nutriments de chaque Constituant", () => {
+    const [demi] = appliquerCoefficient([sauce], 0.5);
+    expect(demi).toEqual({
+      ...sauce,
+      quantite: 100,
+      equivalent_cuisine: "0,5 louche",
+      calories: 160, proteines: 6, glucides: 5, sucres: 2, lipides: 13, ags: 3.25, fibres: 1.5, sel: 0.9,
+    });
+  });
+
+  it("laisse intacts les Constituants d'origine (copie)", () => {
+    appliquerCoefficient([sauce], 2);
+    expect(sauce.quantite).toBe(200);
+  });
+
+  it("accepte un Constituant estimé à 0 g", () => {
+    expect(appliquerCoefficient([{ ...sauce, quantite: 0 }], 1.5)[0]?.calories).toBe(480);
+  });
+
+  it("refuse un coefficient nul ou négatif", () => {
+    expect(() => appliquerCoefficient([sauce], 0)).toThrow();
   });
 });

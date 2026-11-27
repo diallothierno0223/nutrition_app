@@ -6,6 +6,7 @@ import {
   objectifsRestants,
   retirerValeurs,
   totauxDuRepas,
+  type Constituant,
   type ObjectifsJournaliers,
   type ValeursNutritionnelles,
 } from "../../../noyau/index.ts";
@@ -25,13 +26,28 @@ async function lirePhoto(supabase: SupabaseClient, chemin: string | null): Promi
   return { typeMime: data.type || "image/jpeg", octets: new Uint8Array(await data.arrayBuffer()) };
 }
 
+const COLONNES_CONSTITUANT = ["nom", "quantite", "unite", "equivalent_cuisine", ...NUTRIMENTS].join(", ");
+
+/** Les Constituants actuels d'un Repas déjà analysé (base d'une relance) ; aucun pour un Repas en attente. */
+async function constituantsActuels(supabase: SupabaseClient, repas: RepasAAnalyser): Promise<Constituant[]> {
+  if (repas.statut !== "analyse") return [];
+  const { data, error } = await supabase
+    .from("constituants")
+    .select(COLONNES_CONSTITUANT)
+    .eq("repas_id", repas.id)
+    .order("position");
+  if (error) throw new Error(error.message);
+  return data as unknown as Constituant[];
+}
+
 /**
  * Ce qui reste des Objectifs de la Journée sans compter ce Repas : les totaux du jour (vue SQL, Repas analysés
- * seulement) moins ce Repas s'il est déjà analysé, pour qu'une relance ne se compte pas elle-même.
+ * seulement) moins les Constituants actuels de ce Repas, pour qu'une relance ne se compte pas elle-même.
  */
 async function objectifsRestantsSansCeRepas(
   supabase: SupabaseClient,
   repas: RepasAAnalyser,
+  actuels: Constituant[],
 ): Promise<ObjectifsJournaliers | null> {
   const objectifs = await supabase.from("objectifs_journaliers").select(COLONNES_NUTRIMENTS).maybeSingle();
   if (objectifs.error) throw new Error(objectifs.error.message);
@@ -43,14 +59,7 @@ async function objectifsRestantsSansCeRepas(
     .eq("journee", repas.journee)
     .maybeSingle();
   if (totaux.error) throw new Error(totaux.error.message);
-  let consommes = (totaux.data as ValeursNutritionnelles | null) ?? RIEN;
-
-  if (repas.statut === "analyse") {
-    const ceRepas = await supabase.from("constituants").select(COLONNES_NUTRIMENTS).eq("repas_id", repas.id);
-    if (ceRepas.error) throw new Error(ceRepas.error.message);
-    consommes = retirerValeurs(consommes, totauxDuRepas(ceRepas.data as ValeursNutritionnelles[]));
-  }
-
+  const consommes = retirerValeurs((totaux.data as ValeursNutritionnelles | null) ?? RIEN, totauxDuRepas(actuels));
   return objectifsRestants(objectifs.data as ObjectifsJournaliers, consommes);
 }
 
@@ -78,12 +87,14 @@ Deno.serve(async (requete) => {
   if (!repas) return Response.json({ erreur: "Repas introuvable" }, { status: 404 });
 
   try {
+    const actuels = await constituantsActuels(supabase, repas);
     const analyse = await iaDepuisEnvironnement().analyserRepas({
       description: repas.description,
       photo: await lirePhoto(supabase, repas.photo_chemin),
       precision: repas.precision,
+      constituantsActuels: actuels,
       typeDeRepas: repas.type_repas,
-      objectifsRestants: await objectifsRestantsSansCeRepas(supabase, repas),
+      objectifsRestants: await objectifsRestantsSansCeRepas(supabase, repas, actuels),
       reglesDuMedecin: await reglesActives(supabase),
     });
     const { error } = await supabase.rpc("enregistrer_analyse", {

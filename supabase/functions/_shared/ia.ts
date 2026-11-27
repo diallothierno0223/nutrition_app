@@ -12,6 +12,7 @@ import {
   lireAnalyseRepas,
   lireEstimationObjectifs,
   type AnalyseRepas,
+  type Constituant,
   type EstimationObjectifs,
   type ObjectifsJournaliers,
   type ProfilCorporel,
@@ -28,6 +29,8 @@ export type DemandeAnalyseRepas = {
   photo: PhotoDuRepas | null;
   /** Une précision ajoutée après coup pour corriger l'analyse (« j'ai ajouté une cuillère d'huile »). */
   precision: string | null;
+  /** Les Constituants actuels quand on relance un Repas déjà analysé (base à corriger) ; vide sinon. */
+  constituantsActuels: Constituant[];
   typeDeRepas: TypeDeRepas;
   /** Ce qui reste dans les Objectifs du jour avant ce Repas ; null si aucun Objectif n'est défini. */
   objectifsRestants: ObjectifsJournaliers | null;
@@ -80,9 +83,10 @@ export function iaDepuisEnvironnement(): IA {
 }
 
 const iaFactice: IA = {
-  async analyserRepas({ description, photo, precision, objectifsRestants, reglesDuMedecin }) {
+  async analyserRepas({ description, photo, precision, constituantsActuels, objectifsRestants, reglesDuMedecin }) {
     const recue = photo ? `\nPhoto reçue (${photo.octets.length} octets).` : "";
     const precisee = precision ? `\nPrécision : ${precision}` : "";
+    const base = constituantsActuels.length > 0 ? `\nBase : ${constituantsActuels.map((c) => c.nom).join(", ")}` : "";
     const restants = objectifsRestants ? `\n${decrireObjectifsRestants(objectifsRestants)}` : "";
     const regles = reglesDuMedecin.length > 0 ? `\n${decrireRegles(reglesDuMedecin)}` : "";
     return lireAnalyseRepas({
@@ -92,7 +96,7 @@ const iaFactice: IA = {
         { nom: "Sauce arachide", quantite: 200, unite: "ml", equivalent_cuisine: "1 louche",
           calories: 320, proteines: 12, glucides: 10, sucres: 4, lipides: 26, ags: 6.5, fibres: 3, sel: 1.8 },
       ],
-      commentaire: `Analyse factice de « ${description} ».\nPoint fort : des glucides pour l'énergie.\nPoint faible : sauce riche en AGS.\nAmélioration : moins de pâte d'arachide.${recue}${precisee}${restants}${regles}`,
+      commentaire: `Analyse factice de « ${description} ».\nPoint fort : des glucides pour l'énergie.\nPoint faible : sauce riche en AGS.\nAmélioration : moins de pâte d'arachide.${recue}${precisee}${base}${restants}${regles}`,
     });
   },
 
@@ -224,10 +228,13 @@ async function appelerGemini(
 
 function iaGemini(cle: string, modele: string): IA {
   return {
-    async analyserRepas({ description, photo, precision, typeDeRepas, objectifsRestants, reglesDuMedecin }) {
+    async analyserRepas({ description, photo, precision, constituantsActuels, typeDeRepas, objectifsRestants, reglesDuMedecin }) {
       const demande = [
         `Type de repas : ${libelleDuTypeDeRepas(typeDeRepas)}`,
         photo ? `Photo du repas jointe. Note : ${description || "aucune"}` : `Description : ${description}`,
+        ...(constituantsActuels.length > 0
+          ? [`Constituants actuels, à corriger selon la précision :\n${JSON.stringify(constituantsActuels)}`]
+          : []),
         ...(precision ? [`Précision de l'utilisateur (elle corrige la description) : ${precision}`] : []),
         `Objectifs restants avant ce repas :\n${decrireObjectifsRestants(objectifsRestants)}`,
         `Règles du médecin (elles priment) :\n${decrireRegles(reglesDuMedecin)}`,

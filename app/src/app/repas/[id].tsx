@@ -8,11 +8,19 @@ import { Bouton } from "@/components/bouton";
 import { CarteConstituant } from "@/components/carte-constituant";
 import { Champ } from "@/components/champ";
 import { Ecran } from "@/components/ecran";
+import { EnregistrerCommePlat } from "@/components/enregistrer-comme-plat";
 import { MomentDuRepas } from "@/components/moment-du-repas";
 import { ThemedText } from "@/components/themed-text";
 import { ValeursNutritionnelles } from "@/components/valeurs-nutritionnelles";
 import { adresseDePhoto } from "@/donnees/photos";
-import { chargerRepas, relancerAvecPrecision, supprimerRepas, type RepasDetaille } from "@/donnees/repas";
+import {
+  chargerRepas,
+  corrigerConstituant,
+  relancerAvecPrecision,
+  supprimerConstituant,
+  supprimerRepas,
+  type RepasDetaille,
+} from "@/donnees/repas";
 import { libelleDuTypeDeRepas, totauxDuRepas } from "@noyau";
 
 export default function DetailRepas() {
@@ -103,9 +111,19 @@ export default function DetailRepas() {
 
           <ThemedText type="smallBold">Constituants</ThemedText>
           {repas.constituants.map((c) => (
-            <CarteConstituant key={c.id} constituant={c} onChange={charger} />
+            <CarteConstituant
+              key={c.id}
+              constituant={c}
+              corriger={(corrige) => corrigerConstituant(c.id, corrige)}
+              supprimer={() => supprimerConstituant(c.id)}
+              onChange={charger}
+            />
           ))}
           <AjoutConstituant repasId={repas.id} onChange={charger} />
+          <EnregistrerCommePlat
+            nomPropose={repas.description || repas.constituants.map((c) => c.nom).join(", ")}
+            constituants={repas.constituants}
+          />
 
           {repas.commentaire && (
             <>

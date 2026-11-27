@@ -1,14 +1,16 @@
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
-import { router } from "expo-router";
-import { useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import { StyleSheet, TextInput, View } from "react-native";
 
 import { Bouton } from "@/components/bouton";
 import { Ecran } from "@/components/ecran";
+import { ListeDePlats } from "@/components/liste-de-plats";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import type { PhotoChoisie } from "@/donnees/photos";
+import { listerPlats, type Plat } from "@/donnees/plats";
 import { saisirRepas } from "@/donnees/repas";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -32,6 +34,14 @@ export default function Saisie() {
   const [photo, setPhoto] = useState<PhotoChoisie | null>(null);
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [plats, setPlats] = useState<Plat[]>([]);
+
+  // Rechargés à chaque retour sur l'onglet : un Plat créé ou supprimé ailleurs apparaît ou disparaît.
+  useFocusEffect(
+    useCallback(() => {
+      listerPlats().then(setPlats, () => undefined);
+    }, []),
+  );
 
   async function choisirPhoto(source: SourcePhoto) {
     setErreur(null);
@@ -62,6 +72,7 @@ export default function Saisie() {
 
   return (
     <Ecran titre="Saisie rapide">
+      <ListeDePlats titre="Mes Plats" plats={plats} />
       <ThemedText themeColor="textSecondary">
         {photo
           ? "Ajoute une note si tu veux : huile, cuisson, sauce, quantité."
