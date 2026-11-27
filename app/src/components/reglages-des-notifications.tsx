@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, Switch, View } from "react-native";
 
 import { Bouton } from "@/components/bouton";
 import { ChampHeure } from "@/components/champ-date-heure";
@@ -76,10 +76,10 @@ export function ReglagesDesNotifications() {
             desactive={!reglages[type].active}
             onChange={(heure) => setReglages({ ...reglages, [type]: { ...reglages[type], heure } })}
           />
-          <Bouton
-            libelle={reglages[type].active ? "Activée" : "Désactivée"}
-            variante="secondaire"
-            onPress={() => setReglages({ ...reglages, [type]: { ...reglages[type], active: !reglages[type].active } })}
+          <Switch
+            value={reglages[type].active}
+            accessibilityLabel={`Activer : ${libelleDeNotification(type)}`}
+            onValueChange={(active) => setReglages({ ...reglages, [type]: { ...reglages[type], active } })}
           />
         </View>
       ))}
