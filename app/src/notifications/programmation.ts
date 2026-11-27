@@ -128,15 +128,22 @@ export type EtatDesNotifications = {
   prochaine: Date | null;
 };
 
+/** Prochain déclenchement d'une notification programmée ; Android renvoie les dates sous `value`, en millisecondes. */
+async function prochainDeclenchement(trigger: Notifications.NotificationTrigger): Promise<number | null> {
+  const brut = trigger as unknown as Record<string, unknown> | null;
+  if (typeof brut?.value === "number") return brut.value;
+  if (brut?.date instanceof Date) return brut.date.getTime();
+  if (typeof brut?.date === "number") return brut.date;
+  return Notifications.getNextTriggerDateAsync(trigger as Notifications.SchedulableNotificationTriggerInput).catch(() => null);
+}
+
 export async function etatDesNotifications(): Promise<EtatDesNotifications> {
   const [permission, exactes, programmees] = await Promise.all([
     Notifications.getPermissionsAsync(),
     Platform.OS === "android" ? Notifications.getExactAlarmPermissionsAsync() : Promise.resolve({ granted: true }),
     Notifications.getAllScheduledNotificationsAsync(),
   ]);
-  const dates = await Promise.all(
-    programmees.map((n) => Notifications.getNextTriggerDateAsync(n.trigger as Notifications.SchedulableNotificationTriggerInput).catch(() => null)),
-  );
+  const dates = await Promise.all(programmees.map((n) => prochainDeclenchement(n.trigger)));
   const prochaine = dates.filter((d): d is number => d !== null).sort((a, b) => a - b)[0];
   return {
     autorisees: permission.granted,
@@ -152,13 +159,20 @@ export async function autoriserAlarmesExactes(): Promise<boolean> {
   return (await Notifications.requestExactAlarmPermissionsAsync()).granted;
 }
 
-/** Notification d'essai, dans 10 secondes : vérifie la permission et l'affichage, sans attendre l'heure réglée. */
-export async function envoyerNotificationDeTest(): Promise<boolean> {
+/**
+ * Notification d'essai, programmée à une date précise comme les vraies (même mécanisme d'alarme) : à 10 secondes,
+ * elle vérifie la permission et l'affichage ; à 2 minutes, app fermée, elle vérifie la livraison en arrière-plan.
+ */
+export async function envoyerNotificationDeTest(delaiSecondes: number): Promise<boolean> {
   if (!(await autorisees(true))) return false;
   await programmer(
     "test",
     { titre: "Notification de test", corps: "Les notifications fonctionnent." },
-    { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 10, channelId: CANAL },
+    {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date: new Date(Date.now() + delaiSecondes * 1000),
+      channelId: CANAL,
+    },
   );
   return true;
 }

@@ -49,8 +49,10 @@ export function ReglagesDesNotifications() {
     setEtat(await etatDesNotifications().catch(() => null));
   }
 
-  async function tester() {
-    setMessage((await envoyerNotificationDeTest()) ? "Notification de test dans 10 secondes." : "Notifications refusées : autorise-les dans les paramètres Android de l'app.");
+  async function tester(delaiSecondes: number, annonce: string) {
+    const envoyee = await envoyerNotificationDeTest(delaiSecondes);
+    setMessage(envoyee ? annonce : "Notifications refusées : autorise-les dans les paramètres Android de l'app.");
+    await actualiserEtat();
   }
 
   async function heureExacte() {
@@ -91,7 +93,12 @@ export function ReglagesDesNotifications() {
         </ThemedText>
       )}
       <View style={styles.ligne}>
-        <Bouton libelle="Envoyer un test" variante="secondaire" onPress={tester} />
+        <Bouton libelle="Test dans 10 s" variante="secondaire" onPress={() => tester(10, "Notification de test dans 10 secondes.")} />
+        <Bouton
+          libelle="Test dans 2 min"
+          variante="secondaire"
+          onPress={() => tester(120, "Notification de test dans 2 minutes : ferme l'app (balaye-la des apps récentes) et attends.")}
+        />
         {etat && !etat.exactes && <Bouton libelle="Autoriser l'heure exacte" variante="secondaire" onPress={heureExacte} />}
       </View>
     </View>
@@ -100,7 +107,7 @@ export function ReglagesDesNotifications() {
 
 const styles = StyleSheet.create({
   bloc: { gap: Spacing.two },
-  ligne: { flexDirection: "row", alignItems: "center", gap: Spacing.two },
+  ligne: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: Spacing.two },
   libelle: { flex: 1 },
   heure: { width: 100 },
 });

@@ -66,9 +66,7 @@ export function ChampDate({ valeur, onChange, placeholder, desactive, style, min
       value: vide ? new Date() : depuisJournee(valeur),
       minimumDate: min ? depuisJournee(min) : undefined,
       maximumDate: max ? depuisJournee(max) : undefined,
-      onChange: (evenement, date) => {
-        if (evenement.type === "set" && date) onChange(versJournee(date));
-      },
+      onValueChange: (_evenement, date) => onChange(versJournee(date)),
     });
   }
   const champ = (
@@ -109,9 +107,7 @@ export function ChampHeure({ valeur, onChange, placeholder, desactive, style }: 
       mode: "time",
       is24Hour: true,
       value: depart,
-      onChange: (evenement, date) => {
-        if (evenement.type === "set" && date) onChange(versHeure(date));
-      },
+      onValueChange: (_evenement, date) => onChange(versHeure(date)),
     });
   }
   return (
