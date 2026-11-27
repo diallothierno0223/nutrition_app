@@ -101,10 +101,12 @@ export async function reutiliserPlat(
   if (error) throw error;
   const repasId = data as string;
 
+  // Le Repas existe déjà : un échec de la précision ne doit pas le faire croire perdu (et pousser à un doublon).
+  // La fiche du Repas montre la précision et permet de relancer l'analyse.
   if (precision.trim()) {
     const miseAJour = await supabase.from("repas").update({ precision: precision.trim() }).eq("id", repasId);
-    if (miseAJour.error) throw miseAJour.error;
-    await analyserRepas(repasId);
+    if (miseAJour.error) console.warn("précision non enregistrée :", miseAJour.error.message);
+    else await analyserRepas(repasId);
   }
   return repasId;
 }

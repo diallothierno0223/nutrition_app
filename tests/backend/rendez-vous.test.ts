@@ -84,15 +84,20 @@ describe("Rendez-vous du samedi", () => {
     ]);
   });
 
-  it("repropose une Recette marquée « à refaire »", async () => {
+  it("repropose une Recette marquée « à refaire », et garde sa marque", async () => {
     const { rendez_vous_id } = await (await generer(moi)).json();
     const [premiere] = await recettesDe(moi, rendez_vous_id);
     const { error } = await moi.client.from("recettes").update({ a_refaire: true }).eq("id", premiere!.id);
     expect(error).toBeNull();
 
     const force = await (await generer(moi, { force: true })).json();
-    const noms = (await recettesDe(moi, force.rendez_vous_id)).map((r) => r.nom);
-    expect(noms).toContain(premiere!.nom);
+    const { data: revenue } = await moi.client
+      .from("recettes")
+      .select("a_refaire")
+      .eq("rendez_vous_id", force.rendez_vous_id)
+      .eq("nom", premiere!.nom)
+      .single();
+    expect(revenue?.a_refaire).toBe(true);
   });
 
   it("suit les Réglages du samedi", async () => {
@@ -115,7 +120,7 @@ describe("Rendez-vous du samedi", () => {
     expect(insertion).not.toBeNull();
 
     const { error: rpc } = await moi.client.rpc("ecrire_rendez_vous", {
-      p_user_id: moi.id, p_samedi: "2026-01-03", p_bilan: "x", p_recettes: [], p_automatique: false,
+      p_user_id: moi.id, p_samedi: "2026-01-03", p_bilan: "x", p_recettes: [], p_mode: "force",
     });
     expect(rpc).not.toBeNull();
 
@@ -127,12 +132,12 @@ describe("Rendez-vous du samedi", () => {
     expect((await generer(null)).status).toBe(401);
   });
 
-  it("n'écrase jamais un Rendez-vous existant en mode automatique (ecrire_rendez_vous)", async () => {
+  it.each(["automatique", "demande"])("n'écrase jamais un Rendez-vous existant en mode %s (ecrire_rendez_vous)", async (mode) => {
     const { rendez_vous_id, samedi } = await (await generer(moi)).json();
     const avant = await recettesDe(moi, rendez_vous_id);
 
     const { data, error } = await clientAdmin().rpc("ecrire_rendez_vous", {
-      p_user_id: moi.id, p_samedi: samedi, p_bilan: "Autre", p_recettes: [], p_automatique: true,
+      p_user_id: moi.id, p_samedi: samedi, p_bilan: "Autre", p_recettes: [], p_mode: mode,
     });
     expect(error).toBeNull();
     expect(data).toBe(rendez_vous_id);

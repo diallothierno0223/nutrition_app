@@ -26,7 +26,7 @@ Deno.serve(async (requete) => {
         .select("taille_cm, date_naissance, sexe, niveau_activite, fuseau, objectifs_personnels, objectif_poids_variation_kg, objectif_poids_echeance")
         .maybeSingle(),
       supabase.from("pesees").select("poids_kg").order("pese_le", { ascending: false }).limit(1).maybeSingle(),
-      reglesActives(supabase),
+      reglesActives(supabase, null),
     ]);
     for (const r of lectures.slice(0, 2) as { error: { message: string } | null }[]) {
       if (r.error) throw new Error(r.error.message);

@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, Alert, StyleSheet, View } from "react-native";
 
 import { Bouton } from "@/components/bouton";
@@ -10,7 +10,7 @@ import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { fuseauDuTelephone } from "@/donnees/repas";
 import { dernierRendezVous, genererRendezVous, type RendezVous } from "@/donnees/samedi";
-import { rendezVousManquant } from "@noyau";
+import { rendezVousManquant, samediDeReference } from "@noyau";
 
 export default function Samedi() {
   const [rendezVous, setRendezVous] = useState<RendezVous | null | undefined>(undefined);
@@ -28,11 +28,22 @@ export default function Samedi() {
     }
   }, []);
 
-  // Si le samedi est passé 6 h et que rien n'est prêt (traitement automatique en échec), on génère tout de suite.
+  // Si le samedi est passé 6 h et que rien n'est prêt (traitement automatique en échec), on génère tout de suite,
+  // une seule fois par samedi tant que l'écran vit : après un échec, c'est le bouton qui relance.
+  const samediTente = useRef<string | null>(null);
   useFocusEffect(
     useCallback(() => {
       charger().then((dernier) => {
-        if (dernier !== undefined && rendezVousManquant(new Date(), fuseauDuTelephone(), dernier?.samedi ?? null)) {
+        const maintenant = new Date();
+        const fuseau = fuseauDuTelephone();
+        const samedi = samediDeReference(maintenant, fuseau);
+        if (
+          dernier !== undefined &&
+          !enCours.current &&
+          samediTente.current !== samedi &&
+          rendezVousManquant(maintenant, fuseau, dernier?.samedi ?? null)
+        ) {
+          samediTente.current = samedi;
           generer(false);
         }
       });
@@ -40,7 +51,10 @@ export default function Samedi() {
     }, [charger]),
   );
 
+  const enCours = useRef(false);
   async function generer(force: boolean) {
+    if (enCours.current) return;
+    enCours.current = true;
     setGeneration(true);
     setMessage(null);
     try {
@@ -49,6 +63,7 @@ export default function Samedi() {
     } catch {
       setMessage("La génération a échoué. Vérifie ta connexion et réessaie.");
     } finally {
+      enCours.current = false;
       setGeneration(false);
     }
   }
@@ -56,7 +71,7 @@ export default function Samedi() {
   function confirmerNouvelleGeneration() {
     Alert.alert(
       "Nouvelle génération ?",
-      "Les Recettes de la semaine seront remplacées par de nouvelles (celles marquées « à refaire » peuvent revenir).",
+      "Les Recettes de la semaine seront remplacées : les cases cochées et le choix des Recettes de la Liste de courses repartent de zéro. Tes ajouts manuels et les marques « à refaire » sont gardés.",
       [
         { text: "Annuler", style: "cancel" },
         { text: "Regénérer", onPress: () => generer(true) },

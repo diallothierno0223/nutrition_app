@@ -95,7 +95,7 @@ Deno.serve(async (requete) => {
       constituantsActuels: actuels,
       typeDeRepas: repas.type_repas,
       objectifsRestants: await objectifsRestantsSansCeRepas(supabase, repas, actuels),
-      reglesDuMedecin: await reglesActives(supabase),
+      reglesDuMedecin: await reglesActives(supabase, null),
     });
     const { error } = await supabase.rpc("enregistrer_analyse", {
       p_repas_id: repas.id,

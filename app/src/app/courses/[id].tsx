@@ -92,10 +92,11 @@ export default function ListeDeCourses() {
 
   async function ajouter() {
     const nom = nouvelArticle.trim();
-    if (nom && (await envoyer(() => ajouterArticle(id, nom)))) {
-      setNouvelArticle("");
+    const ajoute = await envoyer(async () => {
+      await ajouterArticle(id, nom);
       setAjouts(await listerAjoutsManuels(id));
-    }
+    });
+    if (ajoute) setNouvelArticle("");
   }
 
   const sections = construireListeDeCourses(rendezVous.recettes, ajouts);

@@ -61,7 +61,7 @@ La clé n'existe que côté serveur, jamais dans l'app. Chaque réponse de l'IA 
 
 ## Rendez-vous du samedi automatique
 
-`pg_cron` appelle `generer-rendez-vous` chaque heure du vendredi 16 h au samedi 12 h (UTC) ; la fonction génère le Rendez-vous de chaque compte à partir de 6 h le samedi dans le fuseau de son Profil, une seule fois par semaine. En production, donner à la base l'adresse du projet et la clé de service (une fois, dans l'éditeur SQL de Supabase) :
+`pg_cron` appelle `generer-rendez-vous` chaque heure du vendredi 16 h au samedi 18 h (UTC, ce qui couvre tous les fuseaux) ; la fonction génère le Rendez-vous de chaque compte à partir de 6 h le samedi dans le fuseau de son Profil, une seule fois par semaine. En production, donner à la base l'adresse du projet et la clé de service (une fois, dans l'éditeur SQL de Supabase). `cle_service` doit être exactement la clé `service_role` que reçoivent les Edge Functions (`SUPABASE_SERVICE_ROLE_KEY`) :
 
 ```sql
 select vault.create_secret('https://<projet>.supabase.co', 'url_projet');

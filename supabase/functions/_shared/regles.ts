@@ -3,10 +3,10 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2.119.2";
 import type { RegleDuMedecin } from "../../../noyau/index.ts";
 
 /**
- * Avec la session de l'utilisateur, la RLS suffit. Avec le rôle de service (traitement automatique), `userId`
- * est obligatoire pour ne lire que ses Règles.
+ * `userId` est explicite à chaque appel : null avec la session de l'utilisateur (la RLS filtre), son identifiant
+ * avec le rôle de service (traitement automatique), qui sinon lirait les Règles de tous les comptes.
  */
-export async function reglesActives(supabase: SupabaseClient, userId?: string): Promise<RegleDuMedecin[]> {
+export async function reglesActives(supabase: SupabaseClient, userId: string | null): Promise<RegleDuMedecin[]> {
   let requete = supabase.from("regles_medecin").select("categorie, texte").is("archivee_le", null);
   if (userId) requete = requete.eq("user_id", userId);
   const { data, error } = await requete.order("date_consultation", { ascending: false });

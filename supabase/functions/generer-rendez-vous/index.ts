@@ -55,12 +55,18 @@ async function historiqueDesRecettes(admin: SupabaseClient, userId: string, same
   return lignes.map((r) => ({ nom: r.nom, a_refaire: r.a_refaire, samedi: r.rendez_vous.samedi }));
 }
 
+/**
+ * « automatique » et « demande » ne remplacent jamais un Rendez-vous existant (vérifié ici pour éviter l'appel à
+ * l'IA, et de nouveau dans ecrire_rendez_vous si deux appels se croisent) ; « force » le régénère.
+ */
+type ModeDeGeneration = "automatique" | "demande" | "force";
+
 /** Génère (si besoin) et enregistre le Rendez-vous de la semaine d'un utilisateur. */
 export async function genererPourUtilisateur(
   admin: SupabaseClient,
   userId: string,
   fuseau: string,
-  { force, automatique }: { force: boolean; automatique: boolean },
+  mode: ModeDeGeneration,
   maintenant = new Date(),
 ): Promise<Generation> {
   const samedi = samediDeReference(maintenant, fuseau);
@@ -68,7 +74,7 @@ export async function genererPourUtilisateur(
   const existant = verifier(
     await admin.from("rendez_vous").select("id").eq("user_id", userId).eq("samedi", samedi).maybeSingle(),
   );
-  if (existant && !force) return { rendez_vous_id: existant.id, samedi, genere: false };
+  if (existant && mode !== "force") return { rendez_vous_id: existant.id, samedi, genere: false };
 
   const periode = periodeDAnalyse(samedi);
   const [totaux, objectifs, reglages, regles, historique] = await Promise.all([
@@ -117,7 +123,7 @@ export async function genererPourUtilisateur(
       p_bilan: rendezVous.bilan,
       // Chaque Recette emporte son Plat de la semaine : une portion de chaque ingrédient (noyau métier).
       p_recettes: rendezVous.recettes.map((r) => ({ ...r, plat: platDUnePortion(r) })),
-      p_automatique: automatique,
+      p_mode: mode,
     }),
   ) as string;
   return { rendez_vous_id: id, samedi, genere: true };
@@ -132,6 +138,18 @@ const fuseauValide = (fuseau: unknown): fuseau is string => {
     return false;
   }
 };
+
+/** Le fuseau de référence : celui du Profil (comme le traitement automatique), sinon celui proposé, sinon UTC. */
+const fuseauDuCompte = (...candidats: unknown[]): string => candidats.find(fuseauValide) ?? "UTC";
+
+/** Comparaison en temps constant, pour la clé de service. */
+function memeCle(a: string, b: string): boolean {
+  const ea = new TextEncoder().encode(a);
+  const eb = new TextEncoder().encode(b);
+  let difference = ea.length ^ eb.length;
+  for (let i = 0; i < Math.max(ea.length, eb.length); i++) difference |= (ea[i] ?? 0) ^ (eb[i] ?? 0);
+  return difference === 0;
+}
 
 /**
  * Traitement automatique : génère le Rendez-vous de chaque compte pour qui le noyau dit qu'il est dû.
@@ -148,23 +166,23 @@ async function genererAutomatiquement(admin: SupabaseClient, maintenant: Date, u
   const fuseaux = new Map((verifier(profils) as { user_id: string; fuseau: string | null }[]).map((p) => [p.user_id, p.fuseau]));
   const deja = verifier(existants) as { user_id: string; samedi: string }[];
 
-  const bilan = { generes: 0, ignores: 0, echecs: 0 };
+  const compte = { generes: 0, ignores: 0, echecs: 0 };
   for (const userId of ids) {
-    const fuseau = fuseauValide(fuseaux.get(userId)) ? fuseaux.get(userId)! : "UTC";
+    const fuseau = fuseauDuCompte(fuseaux.get(userId));
     const samedis = deja.filter((d) => d.user_id === userId).map((d) => d.samedi);
     if (!samediAGenererAutomatiquement(maintenant, fuseau, samedis)) {
-      bilan.ignores++;
+      compte.ignores++;
       continue;
     }
     try {
-      await genererPourUtilisateur(admin, userId, fuseau, { force: false, automatique: true }, maintenant);
-      bilan.generes++;
+      await genererPourUtilisateur(admin, userId, fuseau, "automatique", maintenant);
+      compte.generes++;
     } catch (e) {
       console.error(`generer-rendez-vous (automatique, ${userId}) :`, e instanceof Error ? e.message : String(e));
-      bilan.echecs++;
+      compte.echecs++;
     }
   }
-  return bilan;
+  return compte;
 }
 
 Deno.serve(async (requete) => {
@@ -177,7 +195,7 @@ Deno.serve(async (requete) => {
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, cleDeService, { auth: { persistSession: false } });
 
   if (corps.automatique === true) {
-    if (jeton !== cleDeService) return Response.json({ erreur: "Réservé au traitement automatique" }, { status: 403 });
+    if (!memeCle(jeton, cleDeService)) return Response.json({ erreur: "Réservé au traitement automatique" }, { status: 403 });
     const maintenant = typeof corps.maintenant === "string" ? new Date(corps.maintenant) : new Date();
     if (Number.isNaN(maintenant.getTime())) return Response.json({ erreur: "maintenant invalide" }, { status: 400 });
     const utilisateurs = Array.isArray(corps.utilisateurs) ? corps.utilisateurs.filter((u: unknown) => typeof u === "string") : null;
@@ -195,8 +213,8 @@ Deno.serve(async (requete) => {
 
   try {
     const profil = verifier(await admin.from("profils").select("fuseau").eq("user_id", userId).maybeSingle());
-    const fuseau = fuseauValide(corps.fuseau) ? corps.fuseau : fuseauValide(profil?.fuseau) ? profil.fuseau : "UTC";
-    const resultat = await genererPourUtilisateur(admin, userId, fuseau, { force: corps.force === true, automatique: false });
+    const fuseau = fuseauDuCompte(profil?.fuseau, corps.fuseau);
+    const resultat = await genererPourUtilisateur(admin, userId, fuseau, corps.force === true ? "force" : "demande");
     return Response.json(resultat);
   } catch (e) {
     console.error("generer-rendez-vous :", e instanceof Error ? e.message : String(e));

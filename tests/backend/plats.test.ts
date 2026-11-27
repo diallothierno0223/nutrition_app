@@ -104,6 +104,17 @@ describe("Plats réutilisables", () => {
     expect(constituants).toEqual([]);
   });
 
+  it("ne laisse modifier que le nom d'un Plat (pas son rattachement à un Rendez-vous)", async () => {
+    const platId = await creerPlat(moi.client);
+
+    expect((await moi.client.from("plats").update({ nom: "Renommé" }).eq("id", platId)).error).toBeNull();
+    const { error } = await moi.client
+      .from("plats")
+      .update({ rendez_vous_id: "00000000-0000-0000-0000-000000000000" })
+      .eq("id", platId);
+    expect(error).not.toBeNull();
+  });
+
   it("refuse un Plat sans Constituant", async () => {
     const { error } = await moi.client.rpc("creer_plat", { p_nom: "Vide", p_constituants: [] });
     expect(error).not.toBeNull();
