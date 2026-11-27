@@ -1,3 +1,6 @@
 node_modules/
 .env
 .env.local
+
+# Jeux de données de test téléchargés (banc d'essai des modèles, ticket 28) : jamais versionnés.
+donnees-de-test/
