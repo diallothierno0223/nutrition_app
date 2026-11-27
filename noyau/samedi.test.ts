@@ -4,6 +4,7 @@ import {
   lireRendezVous,
   nutrimentsParPortion,
   periodeDAnalyse,
+  platDUnePortion,
   recettesInterdites,
   samediDeReference,
   type Constituant,
@@ -118,5 +119,13 @@ describe("nutriments par portion", () => {
   it("divisent les nutriments des ingrédients par le nombre de portions", () => {
     const lu = lireRendezVous(reponseValide(), REGLAGES_DU_SAMEDI_PAR_DEFAUT, []);
     expect(nutrimentsParPortion(lu.recettes[0]!)).toMatchObject({ calories: 250, ags: 0.5, sel: 0.25 });
+  });
+});
+
+describe("Plat de la semaine", () => {
+  it("contient une portion de chaque ingrédient de la Recette", () => {
+    const lu = lireRendezVous(reponseValide(), REGLAGES_DU_SAMEDI_PAR_DEFAUT, []);
+    const [oignonPourUnePortion] = platDUnePortion(lu.recettes[0]!); // Mafé de poisson, 4 portions
+    expect(oignonPourUnePortion).toMatchObject({ nom: "Oignon", quantite: 25, calories: 10, ags: 0.25 });
   });
 });

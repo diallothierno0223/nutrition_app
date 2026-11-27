@@ -3,7 +3,7 @@
 import { lireConstituant } from "./analyse.ts";
 import { heureDe, journeeDe } from "./journee.ts";
 import { NUTRIMENTS } from "./nutriments.ts";
-import { totauxDuRepas, type Constituant, type ValeursNutritionnelles } from "./repas.ts";
+import { appliquerCoefficient, totauxDuRepas, type Constituant, type ValeursNutritionnelles } from "./repas.ts";
 import { ajouterJours } from "./semaine.ts";
 
 /** L'heure locale à partir de laquelle le Rendez-vous du samedi est dû. */
@@ -182,4 +182,9 @@ export function nutrimentsParPortion(recette: Pick<Recette, "ingredients" | "por
   return Object.fromEntries(
     NUTRIMENTS.map((n) => [n, Math.round((total[n] / recette.portions) * 100) / 100]),
   ) as ValeursNutritionnelles;
+}
+
+/** Les Constituants d'un Plat de la semaine : une portion de chaque ingrédient de la Recette. */
+export function platDUnePortion(recette: Pick<Recette, "ingredients" | "portions">): Constituant[] {
+  return appliquerCoefficient(recette.ingredients, 1 / recette.portions);
 }

@@ -139,3 +139,59 @@ describe("Rendez-vous du samedi", () => {
     expect(await recettesDe(moi, rendez_vous_id)).toEqual(avant);
   });
 });
+
+describe("Plats de la semaine", () => {
+  let moi: UtilisateurDeTest;
+
+  beforeAll(async () => {
+    moi = await creerUtilisateurConnecte();
+  });
+  afterAll(async () => {
+    await moi?.supprimer();
+  });
+
+  async function platsDeLaSemaine() {
+    const { data, error } = await moi.client
+      .from("plats")
+      .select("id, nom, rendez_vous_id, constituants_de_plat (nom, quantite, calories)")
+      .not("rendez_vous_id", "is", null)
+      .order("nom");
+    if (error) throw error;
+    return data;
+  }
+
+  it("crée un Plat d'une portion par Recette et par petit-déjeuner", async () => {
+    const { rendez_vous_id } = await (await generer(moi)).json();
+
+    const plats = await platsDeLaSemaine();
+    expect(plats).toHaveLength(6);
+    expect(plats.every((p) => p.rendez_vous_id === rendez_vous_id)).toBe(true);
+    // Mafé de poisson : 4 portions, oignon 150 g et 60 kcal pour toute la Recette.
+    const mafe = plats.find((p) => p.nom === "Mafé de poisson");
+    expect(mafe?.constituants_de_plat).toContainEqual({ nom: "Oignon", quantite: 37.5, calories: 15 });
+  });
+
+  it("remplace les Plats de la semaine à la génération suivante, sans toucher aux Repas ni aux Plats permanents", async () => {
+    const [ancien] = await platsDeLaSemaine();
+    const { data: repasId } = await moi.client.rpc("enregistrer_repas_depuis_plat", {
+      p_description: ancien!.nom, p_mange_le: "2026-11-20T12:00:00Z", p_journee: "2026-11-20", p_type_repas: "dejeuner",
+      p_constituants: [{ nom: "Oignon", quantite: 37.5, unite: "g", equivalent_cuisine: "", calories: 15,
+        proteines: 1, glucides: 1, sucres: 0, lipides: 0, ags: 0, fibres: 0, sel: 0 }],
+    });
+    const { data: permanent } = await moi.client.rpc("creer_plat", {
+      p_nom: "Mafé maison",
+      p_constituants: [{ nom: "Mafé", quantite: 300, unite: "g", equivalent_cuisine: "", calories: 450,
+        proteines: 30, glucides: 15, sucres: 4, lipides: 30, ags: 8, fibres: 4, sel: 2 }],
+    });
+
+    await generer(moi, { force: true });
+
+    const ids = (await platsDeLaSemaine()).map((p) => p.id);
+    expect(ids).toHaveLength(6);
+    expect(ids).not.toContain(ancien!.id);
+    const { data: repas } = await moi.client.from("repas").select("id").eq("id", repasId);
+    expect(repas).toHaveLength(1);
+    const { data: garde } = await moi.client.from("plats").select("rendez_vous_id").eq("id", permanent).single();
+    expect(garde?.rendez_vous_id).toBeNull();
+  });
+});

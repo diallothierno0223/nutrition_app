@@ -9,6 +9,7 @@ import {
   NUTRIMENTS,
   ajouterJours,
   periodeDAnalyse,
+  platDUnePortion,
   recettesInterdites,
   samediDeReference,
   SEMAINES_SANS_REPETITION,
@@ -110,7 +111,8 @@ export async function genererPourUtilisateur(
       p_user_id: userId,
       p_samedi: samedi,
       p_bilan: rendezVous.bilan,
-      p_recettes: rendezVous.recettes,
+      // Chaque Recette emporte son Plat de la semaine : une portion de chaque ingrédient (noyau métier).
+      p_recettes: rendezVous.recettes.map((r) => ({ ...r, plat: platDUnePortion(r) })),
       p_automatique: automatique,
     }),
   ) as string;

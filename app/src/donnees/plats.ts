@@ -16,8 +16,20 @@ function sansIdentifiant(c: Constituant): Constituant {
   return Object.fromEntries(CHAMPS_CONSTITUANT.map((champ) => [champ, c[champ]])) as Constituant;
 }
 
+/** Les Plats permanents (ceux que l'utilisateur a gardés), par nom. */
 export async function listerPlats(): Promise<Plat[]> {
-  const { data, error } = await supabase.from("plats").select("id, nom").order("nom");
+  const { data, error } = await supabase.from("plats").select("id, nom").is("rendez_vous_id", null).order("nom");
+  if (error) throw error;
+  return data;
+}
+
+/** Les Plats de la semaine : une portion de chaque Recette et petit-déjeuner du dernier Rendez-vous du samedi. */
+export async function listerPlatsDeLaSemaine(): Promise<Plat[]> {
+  const { data, error } = await supabase
+    .from("plats")
+    .select("id, nom")
+    .not("rendez_vous_id", "is", null)
+    .order("cree_le");
   if (error) throw error;
   return data;
 }

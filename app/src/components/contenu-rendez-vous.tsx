@@ -4,7 +4,8 @@ import { CarteRecette } from "@/components/carte-recette";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import { formaterSamedi, type RendezVous } from "@/donnees/samedi";
-import { CATEGORIES_DE_RECETTE, libelleDeCategorieDeRecette } from "@noyau";
+import { EnregistrerCommePlat } from "@/components/enregistrer-comme-plat";
+import { CATEGORIES_DE_RECETTE, libelleDeCategorieDeRecette, platDUnePortion } from "@noyau";
 
 /** Le Rendez-vous du samedi : Bilan de la semaine, puis Recettes et petits-déjeuners par catégorie. */
 export function ContenuRendezVous({ rendezVous }: { rendezVous: RendezVous }) {
@@ -23,7 +24,17 @@ export function ContenuRendezVous({ rendezVous }: { rendezVous: RendezVous }) {
           <View key={categorie} style={styles.bloc}>
             <ThemedText type="smallBold">{libelleDeCategorieDeRecette(categorie)}</ThemedText>
             {recettes.map((recette) => (
-              <CarteRecette key={recette.id} recette={recette} />
+              <CarteRecette
+                key={recette.id}
+                recette={recette}
+                actions={
+                  <EnregistrerCommePlat
+                    nomPropose={recette.nom}
+                    constituants={platDUnePortion(recette)}
+                    libelle="Enregistrer comme Plat permanent"
+                  />
+                }
+              />
             ))}
           </View>
         );

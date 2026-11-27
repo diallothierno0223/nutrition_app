@@ -10,7 +10,7 @@ import { ListeDePlats } from "@/components/liste-de-plats";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
 import type { PhotoChoisie } from "@/donnees/photos";
-import { listerPlats, type Plat } from "@/donnees/plats";
+import { listerPlats, listerPlatsDeLaSemaine, type Plat } from "@/donnees/plats";
 import { saisirRepas } from "@/donnees/repas";
 import { useTheme } from "@/hooks/use-theme";
 
@@ -35,10 +35,12 @@ export default function Saisie() {
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [plats, setPlats] = useState<Plat[]>([]);
+  const [platsDeLaSemaine, setPlatsDeLaSemaine] = useState<Plat[]>([]);
 
   // Rechargés à chaque retour sur l'onglet : un Plat créé ou supprimé ailleurs apparaît ou disparaît.
   useFocusEffect(
     useCallback(() => {
+      listerPlatsDeLaSemaine().then(setPlatsDeLaSemaine, () => undefined);
       listerPlats().then(setPlats, () => undefined);
     }, []),
   );
@@ -72,6 +74,7 @@ export default function Saisie() {
 
   return (
     <Ecran titre="Saisie rapide">
+      <ListeDePlats titre="Plats de la semaine" plats={platsDeLaSemaine} />
       <ListeDePlats titre="Mes Plats" plats={plats} />
       <ThemedText themeColor="textSecondary">
         {photo
