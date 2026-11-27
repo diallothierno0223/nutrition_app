@@ -4,7 +4,7 @@ import { NUTRIMENTS, libelleDuNutriment, sensDuNutriment, uniteDuNutriment, type
 import { estUneHeureValide } from "./journee.ts";
 import type { ValeursNutritionnelles } from "./repas.ts";
 
-export const TYPES_DE_NOTIFICATION = ["matin", "midi", "soir", "samedi"] as const;
+export const TYPES_DE_NOTIFICATION = ["matin", "midi", "soir", "samedi", "export"] as const;
 export type TypeDeNotification = (typeof TYPES_DE_NOTIFICATION)[number];
 
 const LIBELLES: Record<TypeDeNotification, string> = {
@@ -12,6 +12,7 @@ const LIBELLES: Record<TypeDeNotification, string> = {
   midi: "Midi (saisie du déjeuner)",
   soir: "Soir (quotas restants)",
   samedi: "Samedi (Rendez-vous)",
+  export: "Export mensuel (le 1er du mois)",
 };
 
 export function libelleDeNotification(type: TypeDeNotification): string {
@@ -27,6 +28,7 @@ export const NOTIFICATIONS_PAR_DEFAUT: ReglagesDesNotifications = {
   midi: { heure: "14:00", active: true },
   soir: { heure: "21:00", active: true },
   samedi: { heure: "09:00", active: true },
+  export: { heure: "10:00", active: true },
 };
 
 /** Lit les réglages enregistrés ; tout réglage absent ou invalide prend sa valeur par défaut. */
@@ -115,5 +117,10 @@ export function contenuDeNotification(type: TypeDeNotification, contexte: Contex
       return { titre: "Avant le dîner", corps: contenuDuSoir(contexte) };
     case "samedi":
       return { titre: "Rendez-vous du samedi", corps: "Ton Rendez-vous du samedi t'attend." };
+    case "export":
+      return {
+        titre: "Export mensuel",
+        corps: "Pense à exporter tes données (Réglages › Données) et à garder le fichier en lieu sûr.",
+      };
   }
 }

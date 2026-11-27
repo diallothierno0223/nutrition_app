@@ -12,3 +12,4 @@ export * from "./samedi.ts";
 export * from "./courses.ts";
 export * from "./notifications.ts";
 export * from "./sante.ts";
+export * from "./export.ts";

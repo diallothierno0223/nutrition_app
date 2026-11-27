@@ -79,6 +79,13 @@ describe("autres notifications", () => {
     });
   });
 
+  it("rappelle l'export mensuel des données", () => {
+    expect(contenuDeNotification("export", contexte)).toEqual({
+      titre: "Export mensuel",
+      corps: "Pense à exporter tes données (Réglages › Données) et à garder le fichier en lieu sûr.",
+    });
+  });
+
   it("reste neutre le samedi", () => {
     expect(contenuDeNotification("samedi", contexte)).toEqual({
       titre: "Rendez-vous du samedi",
@@ -88,12 +95,13 @@ describe("autres notifications", () => {
 });
 
 describe("réglages des notifications", () => {
-  it("ont des heures par défaut : 10 h, 14 h, 21 h et samedi 9 h", () => {
+  it("ont des heures par défaut : 10 h, 14 h, 21 h, samedi 9 h et export le 1er du mois à 10 h", () => {
     expect(NOTIFICATIONS_PAR_DEFAUT).toEqual({
       matin: { heure: "10:00", active: true },
       midi: { heure: "14:00", active: true },
       soir: { heure: "21:00", active: true },
       samedi: { heure: "09:00", active: true },
+      export: { heure: "10:00", active: true },
     });
   });
 

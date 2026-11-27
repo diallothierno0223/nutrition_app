@@ -4,13 +4,14 @@ import { useEffect } from "react";
 import { useColorScheme } from "react-native";
 
 import { FournisseurSession, useSession } from "@/auth/session";
-import { configurerNotifications } from "@/notifications/programmation";
+import { configurerNotifications, useOuvertureDesNotifications } from "@/notifications/programmation";
 
 SplashScreen.preventAutoHideAsync();
 configurerNotifications();
 
 function Navigation() {
   const { session, chargement } = useSession();
+  useOuvertureDesNotifications(!chargement && !!session);
 
   useEffect(() => {
     if (!chargement) SplashScreen.hideAsync();
@@ -32,6 +33,7 @@ function Navigation() {
         <Stack.Screen name="reglages/notifications" options={{ headerShown: true, title: "Notifications" }} />
         <Stack.Screen name="reglages/sante" options={{ headerShown: true, title: "Santé connectée" }} />
         <Stack.Screen name="reglages/samedi" options={{ headerShown: true, title: "Rendez-vous du samedi" }} />
+        <Stack.Screen name="reglages/donnees" options={{ headerShown: true, title: "Données" }} />
       </Stack.Protected>
       <Stack.Protected guard={!session}>
         <Stack.Screen name="connexion" />

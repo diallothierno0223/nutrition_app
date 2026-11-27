@@ -3,7 +3,7 @@ import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 
 import { supabase } from "@/lib/supabase";
 
-const BUCKET = "photos-repas";
+export const BUCKET_PHOTOS = "photos-repas";
 const COTE_MAX = 1600;
 
 export type PhotoChoisie = { uri: string; largeur: number; hauteur: number };
@@ -34,20 +34,20 @@ export async function deposerPhoto(photo: PhotoChoisie): Promise<string> {
 
   const octets = await (await fetch(await compresser(photo))).arrayBuffer();
   const chemin = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
-  const { error } = await supabase.storage.from(BUCKET).upload(chemin, octets, { contentType: "image/jpeg" });
+  const { error } = await supabase.storage.from(BUCKET_PHOTOS).upload(chemin, octets, { contentType: "image/jpeg" });
   if (error) throw error;
   return chemin;
 }
 
 /** Retire une photo qu'aucun Repas n'utilise (dépôt suivi d'un échec d'enregistrement). */
 export async function retirerPhoto(chemin: string): Promise<void> {
-  const { error } = await supabase.storage.from(BUCKET).remove([chemin]);
+  const { error } = await supabase.storage.from(BUCKET_PHOTOS).remove([chemin]);
   if (error) throw error;
 }
 
 /** Une adresse temporaire (1 h) pour afficher une photo du bucket privé. */
 export async function adresseDePhoto(chemin: string): Promise<string> {
-  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(chemin, 3600);
+  const { data, error } = await supabase.storage.from(BUCKET_PHOTOS).createSignedUrl(chemin, 3600);
   if (error) throw error;
   return data.signedUrl;
 }

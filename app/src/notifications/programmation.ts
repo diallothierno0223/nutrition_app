@@ -2,7 +2,9 @@
 // Tout est reprogrammé à chaque appel, l'un après l'autre (file d'attente) : la notification du soir porte ainsi des
 // chiffres à jour après chaque Repas ou ajout d'eau. Le contenu est calculé par le noyau métier.
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router, type Href } from "expo-router";
 import * as Notifications from "expo-notifications";
+import { useEffect, useRef } from "react";
 import { Platform } from "react-native";
 
 import { chargerObjectifEau, eauDuJour } from "@/donnees/hydratation";
@@ -64,10 +66,11 @@ async function programmer(
   identifiant: string,
   contenu: { titre: string; corps: string },
   trigger: Notifications.NotificationTriggerInput,
+  ecran?: Href,
 ) {
   await Notifications.scheduleNotificationAsync({
     identifier: identifiant,
-    content: { title: contenu.titre, body: contenu.corps },
+    content: { title: contenu.titre, body: contenu.corps, data: ecran ? { ecran } : {} },
     trigger,
   });
 }
@@ -94,7 +97,7 @@ async function programmerJourParJour(
   }
 }
 
-/** Heure et minute au format attendu par les déclencheurs DAILY et WEEKLY d'expo-notifications. */
+/** Heure et minute au format attendu par les déclencheurs DAILY, WEEKLY et MONTHLY d'expo-notifications. */
 function horaire(heureReglee: string): { hour: number; minute: number } {
   const { heure, minute } = heureEtMinute(heureReglee);
   return { hour: heure, minute };
@@ -117,6 +120,13 @@ const programmes: Record<TypeDeNotification, (heure: string, contexte: ContexteD
       ...horaire(heure),
       channelId: CANAL,
     }),
+  export: (heure, contexte) =>
+    programmer(
+      "export",
+      contenuDeNotification("export", contexte),
+      { type: Notifications.SchedulableTriggerInputTypes.MONTHLY, day: 1, ...horaire(heure), channelId: CANAL },
+      "/reglages/donnees",
+    ),
 };
 
 /** Ce qui permet de comprendre, depuis les Réglages, pourquoi une notification n'arrive pas. */
@@ -233,4 +243,21 @@ export function rafraichirNotifications(contexte?: ContexteDuJour, { demander = 
     }
   });
   return file;
+}
+
+/**
+ * Toucher une notification qui porte un écran (le rappel d'export, par exemple) ouvre cet écran, y compris quand la
+ * notification a lancé l'app. `pret` : la session est chargée et ouverte (sinon l'écran n'existe pas encore).
+ */
+export function useOuvertureDesNotifications(pret: boolean): void {
+  const reponse = Notifications.useLastNotificationResponse();
+  const traitee = useRef<string | null>(null);
+  useEffect(() => {
+    // Les identifiants sont fixes (« export » revient chaque mois) : la date distingue chaque notification reçue.
+    const identifiant = reponse && `${reponse.notification.request.identifier}@${reponse.notification.date}`;
+    const ecran = reponse?.notification.request.content.data?.ecran;
+    if (!pret || !identifiant || typeof ecran !== "string" || traitee.current === identifiant) return;
+    traitee.current = identifiant;
+    router.push(ecran as Href);
+  }, [reponse, pret]);
 }

@@ -15,6 +15,7 @@ const SECTIONS: { titre: string; description: string; route: Href }[] = [
   { titre: "Notifications", description: "Heures des rappels, activation, test", route: "/reglages/notifications" },
   { titre: "Santé connectée", description: "Health Connect : pas du jour et poids", route: "/reglages/sante" },
   { titre: "Rendez-vous du samedi", description: "Nombre de Recettes, de portions et de petits-déjeuners", route: "/reglages/samedi" },
+  { titre: "Données", description: "Export de toutes tes données (ZIP de CSV)", route: "/reglages/donnees" },
 ];
 
 /** Réglages : tout ce qui se configure dans l'app, rangé par section. */
@@ -39,15 +40,6 @@ export default function Reglages() {
           <ThemedText themeColor="textSecondary">›</ThemedText>
         </Pressable>
       ))}
-
-      <View style={[styles.section, { backgroundColor: theme.backgroundElement }]}>
-        <View style={styles.texte}>
-          <ThemedText type="smallBold">Données</ThemedText>
-          <ThemedText type="small" themeColor="textSecondary">
-            Export de toutes tes données : bientôt disponible.
-          </ThemedText>
-        </View>
-      </View>
 
       <ThemedText type="smallBold">Compte</ThemedText>
       <ThemedText type="small" themeColor="textSecondary">
