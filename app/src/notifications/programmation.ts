@@ -94,12 +94,18 @@ async function programmerJourParJour(
   }
 }
 
+/** Heure et minute au format attendu par les déclencheurs DAILY et WEEKLY d'expo-notifications. */
+function horaire(heureReglee: string): { hour: number; minute: number } {
+  const { heure, minute } = heureEtMinute(heureReglee);
+  return { hour: heure, minute };
+}
+
 const programmes: Record<TypeDeNotification, (heure: string, contexte: ContexteDuJour, maintenant: Date) => Promise<void>> = {
   // Le matin ne parle que des Objectifs journaliers, qui ne changent pas d'un jour à l'autre : quotidienne.
   matin: (heure, contexte) =>
     programmer("matin", contenuDeNotification("matin", contexte), {
       type: Notifications.SchedulableTriggerInputTypes.DAILY,
-      ...heureEtMinute(heure),
+      ...horaire(heure),
       channelId: CANAL,
     }),
   midi: (heure, contexte, maintenant) => programmerJourParJour("midi", heure, contexte, maintenant),
@@ -108,7 +114,7 @@ const programmes: Record<TypeDeNotification, (heure: string, contexte: ContexteD
     programmer("samedi", contenuDeNotification("samedi", contexte), {
       type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
       weekday: SAMEDI_EXPO,
-      ...heureEtMinute(heure),
+      ...horaire(heure),
       channelId: CANAL,
     }),
 };
@@ -123,7 +129,14 @@ async function programmerNotifications(
   await Notifications.cancelAllScheduledNotificationsAsync();
   const actives = (Object.keys(programmes) as TypeDeNotification[]).filter((t) => reglages[t].active);
   if (actives.length === 0 || !(await autorisees(demander))) return;
-  for (const type of actives) await programmes[type](reglages[type].heure, contexte, maintenant);
+  // Chaque type est programmé indépendamment : l'échec de l'un ne prive pas les autres de leur notification.
+  for (const type of actives) {
+    try {
+      await programmes[type](reglages[type].heure, contexte, maintenant);
+    } catch (e) {
+      console.warn(`notification « ${type} » non programmée :`, e instanceof Error ? e.message : String(e));
+    }
+  }
 }
 
 async function contexteDuJour(): Promise<ContexteDuJour> {

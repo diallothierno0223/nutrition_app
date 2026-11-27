@@ -11,4 +11,6 @@
 
 ## Demandes déjà reçues
 
+- **Page d'accueil (Dashboard) :** à refaire ; elle accumule les blocs (jauges, eau, pas, Semaine, moyenne, bouton Réglages) sans hiérarchie claire.
+- **Boutons et éléments sélectionnés :** l'élément choisi (puces, onglets, options, type de repas…) est presque invisible. Il doit ressortir nettement (couleur de fond, contraste, bordure) ; les boutons doivent se reconnaître comme des boutons.
 - **Dashboard, jauges :** afficher sur chaque jauge le sens de son Objectif (« à ne pas dépasser » pour un Plafond, « à atteindre » pour une Cible, « à ±10 % » pour une Plage), comme dans l'écran Objectifs. Piste : déplacer ces libellés (aujourd'hui dans l'écran Objectifs) dans le noyau métier, pour les partager entre les deux écrans.
