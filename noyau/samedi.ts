@@ -188,3 +188,24 @@ export function nutrimentsParPortion(recette: Pick<Recette, "ingredients" | "por
 export function platDUnePortion(recette: Pick<Recette, "ingredients" | "portions">): Constituant[] {
   return appliquerCoefficient(recette.ingredients, 1 / recette.portions);
 }
+
+/**
+ * Décision du traitement automatique (appelé chaque heure du vendredi soir au samedi midi UTC) : le samedi à générer
+ * si l'on est samedi, à partir de 6 h dans le fuseau du Profil, et que ce samedi n'a pas encore de Rendez-vous ;
+ * null sinon. Les appels suivants servent de nouveaux essais en cas d'échec.
+ */
+export function samediAGenererAutomatiquement(
+  maintenant: Date,
+  fuseau: string,
+  samedisDejaGeneres: readonly string[],
+): string | null {
+  const samedi = samediDeReference(maintenant, fuseau);
+  if (journeeDe(maintenant, fuseau) !== samedi) return null;
+  return samedisDejaGeneres.includes(samedi) ? null : samedi;
+}
+
+/** À l'ouverture de l'app : vrai si le samedi de référence (passé 6 h) n'a pas encore de Rendez-vous. */
+export function rendezVousManquant(maintenant: Date, fuseau: string, dernierSamediGenere: string | null): boolean {
+  const samedi = samediDeReference(maintenant, fuseau);
+  return dernierSamediGenere === null || dernierSamediGenere < samedi;
+}

@@ -6,6 +6,8 @@ import {
   periodeDAnalyse,
   platDUnePortion,
   recettesInterdites,
+  rendezVousManquant,
+  samediAGenererAutomatiquement,
   samediDeReference,
   type Constituant,
 } from "./index.ts";
@@ -127,5 +129,39 @@ describe("Plat de la semaine", () => {
     const lu = lireRendezVous(reponseValide(), REGLAGES_DU_SAMEDI_PAR_DEFAUT, []);
     const [oignonPourUnePortion] = platDUnePortion(lu.recettes[0]!); // Mafé de poisson, 4 portions
     expect(oignonPourUnePortion).toMatchObject({ nom: "Oignon", quantite: 25, calories: 10, ags: 0.25 });
+  });
+});
+
+describe("génération automatique du samedi", () => {
+  it("attend 6 h, heure locale, le samedi", () => {
+    expect(samediAGenererAutomatiquement(new Date("2026-11-28T04:59:00Z"), PARIS, [])).toBeNull(); // 5 h 59
+    expect(samediAGenererAutomatiquement(new Date("2026-11-28T05:00:00Z"), PARIS, [])).toBe("2026-11-28"); // 6 h 00
+  });
+
+  it("suit l'heure d'été", () => {
+    expect(samediAGenererAutomatiquement(new Date("2026-06-27T03:59:00Z"), PARIS, [])).toBeNull();
+    expect(samediAGenererAutomatiquement(new Date("2026-06-27T04:00:00Z"), PARIS, [])).toBe("2026-06-27");
+  });
+
+  it("ne génère jamais deux fois la même semaine", () => {
+    expect(samediAGenererAutomatiquement(new Date("2026-11-28T09:00:00Z"), PARIS, ["2026-11-28"])).toBeNull();
+  });
+
+  it("ne génère que le samedi (le vendredi soir UTC est déjà samedi plus à l'est)", () => {
+    expect(samediAGenererAutomatiquement(new Date("2026-11-27T22:00:00Z"), PARIS, [])).toBeNull(); // vendredi 23 h
+    expect(samediAGenererAutomatiquement(new Date("2026-11-27T22:00:00Z"), "Asia/Tokyo", [])).toBe("2026-11-28"); // samedi 7 h
+    expect(samediAGenererAutomatiquement(new Date("2026-11-29T10:00:00Z"), PARIS, [])).toBeNull(); // dimanche
+  });
+});
+
+describe("Rendez-vous manquant à l'ouverture de l'app", () => {
+  it("manque quand le samedi de référence n'a pas encore de Rendez-vous", () => {
+    expect(rendezVousManquant(new Date("2026-11-28T08:00:00Z"), PARIS, "2026-11-21")).toBe(true);
+    expect(rendezVousManquant(new Date("2026-11-28T08:00:00Z"), PARIS, null)).toBe(true);
+  });
+
+  it("ne manque pas avant 6 h le samedi, ni quand il existe déjà", () => {
+    expect(rendezVousManquant(new Date("2026-11-28T04:00:00Z"), PARIS, "2026-11-21")).toBe(false);
+    expect(rendezVousManquant(new Date("2026-12-01T08:00:00Z"), PARIS, "2026-11-28")).toBe(false);
   });
 });

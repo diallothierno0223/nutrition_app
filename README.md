@@ -59,6 +59,17 @@ Toutes les demandes à l'IA passent par le port IA des Edge Functions (`supabase
 
 La clé n'existe que côté serveur, jamais dans l'app. Chaque réponse de l'IA est validée par le noyau métier avant d'être enregistrée.
 
+## Rendez-vous du samedi automatique
+
+`pg_cron` appelle `generer-rendez-vous` chaque heure du vendredi 16 h au samedi 12 h (UTC) ; la fonction génère le Rendez-vous de chaque compte à partir de 6 h le samedi dans le fuseau de son Profil, une seule fois par semaine. En production, donner à la base l'adresse du projet et la clé de service (une fois, dans l'éditeur SQL de Supabase) :
+
+```sql
+select vault.create_secret('https://<projet>.supabase.co', 'url_projet');
+select vault.create_secret('<clé service_role>', 'cle_service');
+```
+
+Sans ces secrets (en local), le traitement automatique ne fait rien ; l'app génère alors le Rendez-vous à l'ouverture de l'onglet Samedi.
+
 ## App mobile
 
 1. Copier `app/.env.example` en `app/.env.local` et renseigner l'URL Supabase (IP du PC sur le Wi-Fi en local) et la clé `ANON_KEY` de `npx supabase status`.

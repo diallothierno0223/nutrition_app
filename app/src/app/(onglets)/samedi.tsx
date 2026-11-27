@@ -8,7 +8,9 @@ import { Ecran } from "@/components/ecran";
 import { ReglagesDuSamedi } from "@/components/reglages-du-samedi";
 import { ThemedText } from "@/components/themed-text";
 import { Spacing } from "@/constants/theme";
+import { fuseauDuTelephone } from "@/donnees/repas";
 import { dernierRendezVous, genererRendezVous, type RendezVous } from "@/donnees/samedi";
+import { rendezVousManquant } from "@noyau";
 
 export default function Samedi() {
   const [rendezVous, setRendezVous] = useState<RendezVous | null | undefined>(undefined);
@@ -17,15 +19,24 @@ export default function Samedi() {
 
   const charger = useCallback(async () => {
     try {
-      setRendezVous(await dernierRendezVous());
+      const dernier = await dernierRendezVous();
+      setRendezVous(dernier);
+      return dernier;
     } catch {
       setMessage("La base ne répond pas.");
+      return undefined;
     }
   }, []);
 
+  // Si le samedi est passé 6 h et que rien n'est prêt (traitement automatique en échec), on génère tout de suite.
   useFocusEffect(
     useCallback(() => {
-      charger();
+      charger().then((dernier) => {
+        if (dernier !== undefined && rendezVousManquant(new Date(), fuseauDuTelephone(), dernier?.samedi ?? null)) {
+          generer(false);
+        }
+      });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [charger]),
   );
 

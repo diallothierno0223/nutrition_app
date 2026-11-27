@@ -1,9 +1,12 @@
-// Génère le Rendez-vous du samedi (ticket 12) et l'enregistre directement (ADR 0003).
-// Entrée : POST { force?: boolean, fuseau?: string } avec la session de l'utilisateur.
-// - sans force : idempotente, renvoie le Rendez-vous de la semaine s'il existe déjà (pas d'appel à l'IA) ;
-// - avec force : nouvelle génération, qui remplace les Recettes de la semaine.
-// L'utilisateur est authentifié par son jeton, puis tout passe par le rôle de service avec un filtre explicite
-// sur son identifiant : c'est le même chemin que le traitement automatique (ticket 15).
+// Génère le Rendez-vous du samedi et l'enregistre directement (ADR 0003). Deux modes :
+// - à la demande (tickets 12 et 15) : POST { force?: boolean, fuseau?: string } avec la session de l'utilisateur.
+//   Sans force, idempotente : renvoie le Rendez-vous de la semaine s'il existe déjà (pas d'appel à l'IA) ;
+//   avec force, nouvelle génération qui remplace les Recettes de la semaine.
+// - automatique (ticket 15) : POST { automatique: true } avec la clé de service, appelé chaque heure par pg_cron.
+//   Pour chaque compte, le noyau décide s'il faut générer (samedi ≥ 6 h dans son fuseau, pas déjà fait) ; un
+//   Rendez-vous existant n'est jamais remplacé. Options de maintenance et de test : `maintenant` (ISO) et
+//   `utilisateurs` (identifiants auxquels se limiter).
+// Dans les deux cas, tout passe par le rôle de service avec un filtre explicite sur l'identifiant du compte.
 import { createClient, type SupabaseClient } from "npm:@supabase/supabase-js@2.119.2";
 import {
   NUTRIMENTS,
@@ -11,6 +14,7 @@ import {
   periodeDAnalyse,
   platDUnePortion,
   recettesInterdites,
+  samediAGenererAutomatiquement,
   samediDeReference,
   SEMAINES_SANS_REPETITION,
   type ObjectifsJournaliers,
@@ -120,7 +124,7 @@ export async function genererPourUtilisateur(
 }
 
 const fuseauValide = (fuseau: unknown): fuseau is string => {
-  if (typeof fuseau !== "string") return false;
+  if (typeof fuseau !== "string" || fuseau === "") return false;
   try {
     new Intl.DateTimeFormat("fr-FR", { timeZone: fuseau });
     return true;
@@ -129,15 +133,61 @@ const fuseauValide = (fuseau: unknown): fuseau is string => {
   }
 };
 
+/**
+ * Traitement automatique : génère le Rendez-vous de chaque compte pour qui le noyau dit qu'il est dû.
+ * Un échec pour un compte n'arrête pas les autres ; l'appel de l'heure suivante sert de nouvel essai.
+ */
+async function genererAutomatiquement(admin: SupabaseClient, maintenant: Date, utilisateurs: string[] | null) {
+  let comptes = admin.from("reglages").select("user_id");
+  if (utilisateurs) comptes = comptes.in("user_id", utilisateurs);
+  const ids = (verifier(await comptes) as { user_id: string }[]).map((c) => c.user_id);
+  const [profils, existants] = await Promise.all([
+    admin.from("profils").select("user_id, fuseau").in("user_id", ids),
+    admin.from("rendez_vous").select("user_id, samedi").in("user_id", ids).gte("samedi", ajouterJours(maintenant.toISOString().slice(0, 10), -8)),
+  ]);
+  const fuseaux = new Map((verifier(profils) as { user_id: string; fuseau: string | null }[]).map((p) => [p.user_id, p.fuseau]));
+  const deja = verifier(existants) as { user_id: string; samedi: string }[];
+
+  const bilan = { generes: 0, ignores: 0, echecs: 0 };
+  for (const userId of ids) {
+    const fuseau = fuseauValide(fuseaux.get(userId)) ? fuseaux.get(userId)! : "UTC";
+    const samedis = deja.filter((d) => d.user_id === userId).map((d) => d.samedi);
+    if (!samediAGenererAutomatiquement(maintenant, fuseau, samedis)) {
+      bilan.ignores++;
+      continue;
+    }
+    try {
+      await genererPourUtilisateur(admin, userId, fuseau, { force: false, automatique: true }, maintenant);
+      bilan.generes++;
+    } catch (e) {
+      console.error(`generer-rendez-vous (automatique, ${userId}) :`, e instanceof Error ? e.message : String(e));
+      bilan.echecs++;
+    }
+  }
+  return bilan;
+}
+
 Deno.serve(async (requete) => {
   if (requete.method !== "POST") return Response.json({ erreur: "POST attendu" }, { status: 405 });
   const jeton = requete.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
   if (!jeton) return Response.json({ erreur: "Session requise" }, { status: 401 });
   const corps = (await requete.json().catch(() => ({}))) ?? {};
 
-  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, {
-    auth: { persistSession: false },
-  });
+  const cleDeService = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const admin = createClient(Deno.env.get("SUPABASE_URL")!, cleDeService, { auth: { persistSession: false } });
+
+  if (corps.automatique === true) {
+    if (jeton !== cleDeService) return Response.json({ erreur: "Réservé au traitement automatique" }, { status: 403 });
+    const maintenant = typeof corps.maintenant === "string" ? new Date(corps.maintenant) : new Date();
+    if (Number.isNaN(maintenant.getTime())) return Response.json({ erreur: "maintenant invalide" }, { status: 400 });
+    const utilisateurs = Array.isArray(corps.utilisateurs) ? corps.utilisateurs.filter((u: unknown) => typeof u === "string") : null;
+    try {
+      return Response.json(await genererAutomatiquement(admin, maintenant, utilisateurs));
+    } catch (e) {
+      console.error("generer-rendez-vous (automatique) :", e instanceof Error ? e.message : String(e));
+      return Response.json({ erreur: "Traitement automatique impossible." }, { status: 500 });
+    }
+  }
 
   const { data: utilisateur } = await admin.auth.getUser(jeton);
   if (!utilisateur.user) return Response.json({ erreur: "Session requise" }, { status: 401 });
@@ -145,7 +195,7 @@ Deno.serve(async (requete) => {
 
   try {
     const profil = verifier(await admin.from("profils").select("fuseau").eq("user_id", userId).maybeSingle());
-    const fuseau = fuseauValide(corps.fuseau) ? corps.fuseau : profil?.fuseau || "UTC";
+    const fuseau = fuseauValide(corps.fuseau) ? corps.fuseau : fuseauValide(profil?.fuseau) ? profil.fuseau : "UTC";
     const resultat = await genererPourUtilisateur(admin, userId, fuseau, { force: corps.force === true, automatique: false });
     return Response.json(resultat);
   } catch (e) {
