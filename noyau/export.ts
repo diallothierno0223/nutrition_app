@@ -48,7 +48,38 @@ export const TABLES_EXPORTEES = [
 ] as const;
 export type TableExportee = (typeof TABLES_EXPORTEES)[number];
 
+/** Début du nom de chaque fichier d'Export. */
+export const PREFIXE_DES_EXPORTS = "suivi-nutritionnel-";
+
 /** « suivi-nutritionnel-2026-11-27.zip » */
 export function nomDuFichierDExport(journee: string): string {
-  return `suivi-nutritionnel-${journee}.zip`;
+  return `${PREFIXE_DES_EXPORTS}${journee}.zip`;
+}
+
+/** Chemin d'une photo de Repas dans l'Export : « photos/2026-11-27_<id du Repas>.jpg », triable par Journée. */
+export function fichierDePhotoExportee(journee: string, repasId: string): string {
+  return `photos/${journee}_${repasId}.jpg`;
+}
+
+/** Une photo de Repas à exporter : son Repas, la Journée du Repas et son chemin dans le Storage. */
+export type PhotoDeRepas = { repasId: string; journee: string; chemin: string };
+
+/** Les photos des Repas exportés (les Repas sans photo sont ignorés). */
+export function photosDesRepas(repas: readonly Record<string, unknown>[]): PhotoDeRepas[] {
+  return repas.flatMap((r) =>
+    typeof r.photo_chemin === "string"
+      ? [{ repasId: String(r.id), journee: String(r.journee), chemin: r.photo_chemin }]
+      : [],
+  );
+}
+
+/** La ligne de photos.csv d'une photo : où la trouver dans le ZIP (si elle y est) et son lien temporaire. */
+export function ligneDePhotoExportee(photo: PhotoDeRepas, dansLeZip: boolean, lien: string): Record<string, string> {
+  return {
+    repas_id: photo.repasId,
+    journee: photo.journee,
+    chemin: photo.chemin,
+    fichier: dansLeZip ? fichierDePhotoExportee(photo.journee, photo.repasId) : "",
+    lien_valable_7_jours: lien,
+  };
 }

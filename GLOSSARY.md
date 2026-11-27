@@ -149,5 +149,5 @@ _À éviter_ : Semaine écoulée, lundi–vendredi
 ### Données
 
 **Export** :
-La copie de toutes les données du compte, en un ZIP de tableaux CSV (un par table) que l'utilisateur enregistre hors de l'app. Les photos n'y sont pas copiées, seulement listées par lien temporaire. C'est la seule sauvegarde : la base gratuite n'en fait pas.
+La copie de toutes les données du compte, en un ZIP de tableaux CSV (un par table) que l'utilisateur enregistre hors de l'app, avec les photos des Repas si l'option « Inclure les photos » est activée (sinon listées par lien temporaire). C'est la seule sauvegarde : la base gratuite n'en fait pas.
 _À éviter_ : Sauvegarde (pour l'export de l'app), backup, téléchargement

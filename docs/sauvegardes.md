@@ -17,8 +17,11 @@ Vérifié le 27 novembre 2026 sur la [page des tarifs](https://supabase.com/pric
 ## Ce que fait l'app
 
 - **Réglages › Données › Exporter mes données** : un ZIP avec un CSV par table (séparateur `;`, UTF-8), enregistré
-  via la feuille de partage Android (téléphone, Drive…). Les photos n'y sont pas copiées : `photos.csv` donne pour
-  chacune un lien de téléchargement valable 7 jours.
+  via la feuille de partage Android (téléphone, Drive…).
+- **Photos** : avec « Inclure les photos » (activé par défaut), elles sont copiées dans le dossier `photos/` du ZIP,
+  nommées par Journée et Repas. Sans cette option, `photos.csv` donne seulement un lien valable 7 jours pour chacune.
+  Une photo supprimée dans l'app (avec son Repas) disparaît des exports suivants ; les ZIP déjà enregistrés la
+  gardent. Garder plusieurs exports successifs revient donc à garder un historique.
 - **Rappel mensuel** : une notification locale le 1er de chaque mois (10 h par défaut), réglable et désactivable dans
   Réglages › Notifications.
 
